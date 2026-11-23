@@ -2,10 +2,52 @@
 
 ## Current status
 
-- Active milestone: **M0 complete; both rounds of M0 review corrections (405, HEAD) are applied and uncommitted, awaiting developer approval**. M1 has not started.
-- Last updated: 2026-11-23 19:50 IST
-- Checkpoints: CP1 pending (target Mon 22:30 IST: M0 and M1 done, sign-in works, UT-SEC and IT-AUTH green)
-- Git: commit `5402bf9` (M0) is preserved; the review corrections are uncommitted working-tree changes for developer review. Nothing committed, pushed or tagged since.
+- Active milestone: **M0, implemented and corrected, committed and pushed; acceptance conditional on the outstanding Docker verification** (see "M0 acceptance status"). M1 has not started.
+- Last updated: 2026-11-23 22:55 IST (reconciled with the actual repository state)
+- Checkpoints: **CP1 (Mon 22:30 IST) missed**: M0 is complete apart from the Docker verification, and M1 has not started. Documented response (10 §6.1): stop for the night, finish M1 first thing Tuesday, apply R5. Applying a reduction rule is the developer's decision (10 §9); R5 is not applied.
+- Git (verified 22:52 IST): branch `claude/busy-bell-14l7rh` at `0ea973c` "M0: HTTP 405 and HEAD corrections", parent `5402bf9` "M0: foundation and risk spikes". Both commits are pushed to `origin` (github.com/adithyad-cs/helovy); the branch is synchronized (0 ahead, 0 behind); the working tree was clean before this reconciliation; no tags. The developer verified the local Windows checkout against GitHub. This reconciliation of PROGRESS.md is an uncommitted change awaiting developer approval.
+- Environments: automated evidence in this file comes from the **cloud development container** (Linux) unless marked **native Windows**; see "Verification evidence by environment".
+
+## M0 acceptance status
+
+| Item | Status |
+| --- | --- |
+| Implementation | Complete: `5402bf9` (M0.1–M0.6) and `0ea973c` (405 and HEAD review corrections), both committed and pushed |
+| Automated evidence (cloud container) | Backend 180/180, including the SeaweedFS gate 6/6; ruff, format and mypy `--strict` clean; FE-01, FE-02, FE-03 pass; documentation consistency checks 15/15 |
+| Outstanding | **Clean Docker build of the committed Dockerfile, and Compose verification of the current code: BLOCKED / UNVERIFIED** in both available environments (see "Verification items") |
+| Acceptance | **Conditional.** Every M0 exit criterion is met except the Docker verification (criteria 1 and 8 below). Formal M0 approval is not recorded |
+
+| # | M0 exit criterion | Status | Evidence and environment |
+| --- | --- | --- | --- |
+| 1 | `docker compose up` starts the documented stack | Partial | Cloud container: stack healthy with the image built through the sandbox-derived Dockerfile from `5402bf9` code. Not verified with an image of the committed Dockerfile, nor with the `0ea973c` code |
+| 2 | `/healthz` returns 200 | Pass | Cloud container: the app container (`5402bf9` image) and a host uvicorn running the current code |
+| 3 | `/readyz` returns 200 | Pass | Cloud container: same as criterion 2 |
+| 4 | The SPA loads | Pass | Cloud container: app container, host uvicorn and headless Chromium (no CSP violations, fonts loaded) |
+| 5 | Risk spike A (WeasyPrint) passes | Pass | Cloud container image (V-06, V-16). Native Windows smoke test also passed (developer-reported, informational) |
+| 6 | SeaweedFS verification gate passes | Pass | Cloud container (V-07, V-08, V-18, V-19; 6/6 automated) |
+| 7 | Required M0 tests pass | Pass | Cloud container: IT-HLT-01 (partial), FE-01 to FE-03; full backend suite 180/180 |
+| 8 | The local Docker image works | **Outstanding (BLOCKED)** | Only the sandbox-derived image was built and run. The committed Dockerfile has never been built: blocked in the cloud container (no DNS or egress for build containers) and on the Windows laptop (Docker Desktop unavailable) |
+| 9 | PROGRESS.md updated with evidence | Pass | This file (this reconciliation awaits approval) |
+| 10 | Final diff reviewed | Pass | Reviewed before `5402bf9` and before `0ea973c` |
+
+## Verification evidence by environment
+
+| Environment | What was verified | Result | Source |
+| --- | --- | --- | --- |
+| Cloud development container (Linux; Docker 29.10 with Compose; Python 3.12.3 on the host, 3.12.16 in the image; Node 22.23.5) | Backend 180/180 including the SeaweedFS gate 6/6; ruff, format, mypy `--strict`; FE-01 to FE-03; documentation checks 15/15; Spike A inside the image; the SeaweedFS gate against the Compose service; live HTTP checks with uvicorn. The image was built only through the sandbox-derived Dockerfile | Pass, except the clean build (BLOCKED) | Claude Code session runs recorded in this file |
+| Native Windows laptop | The local Git checkout matches GitHub (`0ea973c`, clean, synchronized) | Pass | Developer-reported, 23 Nov |
+| Native Windows laptop | WeasyPrint 70.0 installed under Python 3.12.10; a generated PDF opened correctly. Does not by itself establish rendering with the bundled Noto fonts and ₹, or the restricted fetcher (V-06 covers those for the container image; native rendering of the project templates starts in M4) | Pass (smoke test) | Developer-reported, 23 Nov |
+| Native Windows laptop | Docker Desktop reports hardware virtualization disabled; BIOS access is blocked by an unknown administrator password; no further BIOS attempt | Docker unavailable | Developer-reported, 23 Nov |
+| Native Windows laptop | Not run natively yet: the backend test suite (needs PostgreSQL 16 and an S3-compatible endpoint), FE-01 to FE-03 | Not run | — |
+| Both environments | Clean Docker build of the committed Dockerfile; Compose with that image | **BLOCKED / UNVERIFIED** | — |
+
+## Temporary native-Windows development arrangement (approved by the developer, 23 Nov)
+
+- **Reason:** Docker Desktop cannot run on the developer's Windows laptop (hardware virtualization disabled; BIOS access blocked by an unknown administrator password). No further BIOS attempt will be made.
+- **Arrangement:** development may continue natively on that laptop (Python 3.12.10; WeasyPrint 70.0 verified by a native smoke test).
+- **Unchanged:** the approved product architecture (04), the approved stack and dependencies (05 §1, §3), the Dockerfile and docker-compose.yml. Docker Compose remains the documented local runtime (05 §7) and the demonstration runtime (D-1, 10 §8).
+- **Evidence rule:** results obtained natively on Windows are recorded separately from cloud-container results. Neither replaces the clean Docker build and Compose verification, which stay outstanding.
+- **Not yet recorded (needed before M1 runs natively):** how a PostgreSQL 16 server with `ps5`, `ps5_test`, `ps5_migrator` and `ps5_app` (06 §11; the role and grant model of `deploy/postgres/init`) and a SeaweedFS S3 endpoint (ADR-13) are provided without Docker. The documented setup starts both with Docker Compose (05 §6.2, §10). Until the developer records a choice, the cloud container remains the environment where the full backend suite runs.
 
 ## Final M0 documentation cleanup (23 Nov, 19:45 IST)
 
@@ -13,9 +55,9 @@
 | --- | --- | --- |
 | 14 §6 decision #10 (GET/HEAD contract, RFC 9110 §9.1 and §9.3.2) | Done | Row added after #9; no other change to 14 |
 | Consistent record of the 1.2 HEAD correction | Done | README version history (14: decisions #9 and #10); CONSISTENCY_AUDIT §2.1 HEAD row and §3.1 (reason and 14 row); this file. 07 §1.13, §1.14, §2 and 11 IT-GEN-01 already recorded it and needed no change |
-| Documentation consistency checks | Pass | Re-run on the final package (results in the final report) |
-| Git diff review, `git diff --check`, secret scan | Done | All 18 uncommitted files (16 modified, 2 new) |
-| `5402bf9` unmodified | Verified | HEAD is still `5402bf9`; no commit, push, tag, reset, amend or rebase |
+| Documentation consistency checks | Pass | 15/15 on the final package (cloud container) |
+| Git diff review, `git diff --check`, secret scan | Done | All 18 files, uncommitted at the time (16 modified, 2 new); committed later as `0ea973c` |
+| `5402bf9` unmodified | Verified | At 19:45 HEAD was still `5402bf9`, with no commit, push, tag, reset, amend or rebase. `0ea973c` was committed on top of it at 19:52 and pushed, as authorised by the developer |
 
 ## Final M0 review: HEAD support (23 Nov, 19:28–19:40 IST)
 
@@ -23,9 +65,9 @@
 | --- | --- | --- |
 | 1. HEAD on every GET resource | Done | `/healthz`, `/readyz`, SPA pages, root files, static assets, development docs. Same status and headers as GET, no body (0 bytes on the wire with uvicorn), endpoint runs once, `Allow` lists `GET, HEAD` |
 | 2. Documentation 1.2 | Done | 07 §1.13 examples, new §1.14, §2 note; 11 IT-GEN-01; README 1.2 row; CONSISTENCY_AUDIT §1, §2.1, §3.1. 08: no change required. 14 §6: decision #10 added in the final documentation cleanup (see below) |
-| 3. Regression | Pass | Backend 180/180 (155 previous + 25 HEAD; gate 6/6); ruff, format, mypy `--strict` clean; FE-01, FE-02, FE-03 pass; documentation checks 15/15 |
+| 3. Regression | Pass | Cloud container: backend 180/180 (155 previous + 25 HEAD; gate 6/6); ruff, format, mypy `--strict` clean; FE-01, FE-02, FE-03 pass; documentation checks 15/15 |
 | 4. Docker | **BLOCKED** (unchanged) | Not retried, as instructed; the Dockerfile is unchanged |
-| 5. Git safety | Done | `5402bf9` untouched; no commit, push or tag |
+| 5. Git safety | Done | During this review `5402bf9` stayed untouched, with no commit, push or tag; the corrections were committed later as `0ea973c` and pushed |
 
 ## M0 review corrections, first round (23 Nov, 19:05–19:25 IST)
 
@@ -34,8 +76,8 @@
 | 1. HTTP 405 | Done | 405 `method_not_allowed` with `Allow` (problem+json); documentation 1.2; tests below |
 | 2. `@hookform/resolvers` 5.2.2 | Accepted by the developer | Lockfile unchanged (`git diff` empty); `npm ci` clean |
 | 3. Clean `docker build -t hive-docs:local .` | **BLOCKED** (environment) | Exact reasons in "Verification items"; the Compose check with a clean image is therefore NOT RUN |
-| 4. Regression | Pass | Backend 155/155 (gate 6/6); ruff, format, mypy `--strict` clean; FE-01, FE-02, FE-03 pass |
-| 5. Git safety | Done | `5402bf9` untouched; no new commit, push or tag |
+| 4. Regression | Pass | Cloud container: backend 155/155 (gate 6/6); ruff, format, mypy `--strict` clean; FE-01, FE-02, FE-03 pass |
+| 5. Git safety | Done | During this review `5402bf9` stayed untouched, with no new commit, push or tag; the corrections were committed later as `0ea973c` and pushed |
 
 ## API contract changes
 
@@ -48,7 +90,7 @@
 
 | Milestone | Status | Started | Finished | Tests (pass/total) | Notes |
 | --- | --- | --- | --- | --- | --- |
-| M0 | Done; review corrections applied (pending developer approval) | 23 Nov 17:12 | 23 Nov 19:00 (corrections 19:25, 19:40) | Backend 180/180 · FE-01..FE-03 3/3 | WeasyPrint 70.0 locked; SeaweedFS 4.54 verification gate passed (V-07, V-08, V-18, V-19). Reviews: 405 and HEAD contracts added (docs 1.2); clean build of the unmodified Dockerfile BLOCKED by the sandbox network. Two worker restarts during the session (Docker daemon restarted, no data lost) |
+| M0 | Implemented and corrected; committed and pushed (`5402bf9`, `0ea973c`); acceptance conditional: Docker verification outstanding | 23 Nov 17:12 | 23 Nov 19:00 (corrections committed 19:52) | Backend 180/180 · FE-01..FE-03 3/3 (cloud container) | WeasyPrint 70.0 locked; SeaweedFS 4.54 verification gate passed (V-07, V-08, V-18, V-19). Reviews: 405 and HEAD contracts added (docs 1.2). The clean build of the committed Dockerfile and the Compose verification are BLOCKED in the cloud container and cannot run on the developer's Windows laptop. Two worker restarts during the session (Docker daemon restarted, no data lost) |
 | M1 | Not started | | | | |
 | M2 | Not started | | | | |
 | M3 | Not started | | | | |
@@ -69,7 +111,7 @@
 | L-05 | Not started | — | M2 |
 | L-06 | Not started | — | M3 |
 | L-07 | Not started | — | M3 |
-| L-08 | Not started | — | M4 (Spike A proved WeasyPrint + bundled fonts + ₹ in the container) |
+| L-08 | Not started | — | M4 (Spike A proved WeasyPrint + bundled fonts + ₹ in the cloud container image; a native Windows WeasyPrint smoke test also passed, developer-reported) |
 | L-09 | Not started | — | M4 |
 | L-10 | Not started | — | M5 |
 | L-11 | Not started | — | M5 (the SeaweedFS gate proved private storage and authenticated round trips) |
@@ -77,7 +119,7 @@
 | L-13 | Not started | — | M6 |
 | L-14 | Not started | — | M1–M6 |
 | L-15 | In progress | FE-01..FE-03 | Design tokens, fonts, breakpoints and the reduced-motion base rule are in place; pages arrive M1–M7 |
-| L-16 | In progress | IT-HLT-01 (partial), compose stack healthy | Compose with named volumes and 127.0.0.1 ports, E-01/E-02, no committed secrets. DC-17 (persistence across `down`/`up`) is verified in M8 |
+| L-16 | In progress | IT-HLT-01 (partial); Compose stack healthy in the cloud container with the sandbox-derived image of `5402bf9` code | Compose with named volumes and 127.0.0.1 ports, E-01/E-02, no committed secrets. The clean build of the committed Dockerfile and Compose with the current code are outstanding (BLOCKED). DC-17 (persistence across `down`/`up`) is verified in M8 |
 
 ## Reduction rules applied
 
@@ -118,6 +160,9 @@
 | 23 Nov 18:30 | Spike A tooling kept at `backend/scripts/spike_weasyprint.py` (not part of 05 §4; excluded from the image by `.dockerignore`) | 10 §3 M0.4 | Claude Code |
 | 23 Nov 17:40 | Compose project name `ps5` so the volume names (`ps5_pgdata`, `ps5_seaweed_data`) do not depend on the checkout folder's name (backups in M8) | 05 §7.2, 10 §7 | Claude Code |
 | 23 Nov 18:55 | Cloud environment `helovy` (personal) created for this repository, allowing `deb.debian.org` (the default environment's proxy refused it, blocking the image's apt step), with a setup script that runs `uv sync --frozen` and `npm ci` | — (development environment, not product) | Developer (approval card) |
+| 23 Nov 19:52 | The reviewed corrections were committed as `0ea973c` "M0: HTTP 405 and HEAD corrections" (18 files; parent `5402bf9`), and branch `claude/busy-bell-14l7rh` was pushed to `origin` with upstream tracking. No force push; nothing on `main`. The repository had no branches before, so GitHub made this branch its default branch | 15 §4 | Developer (authorisation after review) |
+| 23 Nov 22:55 (recorded) | **Temporary native-Windows development arrangement:** development may continue natively on the developer's Windows laptop while Docker cannot run there. The product architecture, stack, Dockerfile and docker-compose.yml are unchanged; native results are recorded separately from cloud-container results (see the section near the top of this file) | — (development environment, not product; 04 and 05 unchanged) | Developer |
+| 23 Nov 22:55 (recorded) | Docker is unavailable on the developer's Windows laptop (hardware virtualization disabled; BIOS access blocked by an unknown administrator password; no further BIOS attempt). The clean Docker build and the Compose verification remain BLOCKED / UNVERIFIED and are not marked as passed | 10 §8 (D-1), 05 §7 | Developer (reported) |
 
 ## Dependencies added (with approval)
 
@@ -151,6 +196,8 @@ All packages are on the approved list in docs/05 §3; no package outside it was 
 
 ## Verification items (V-xx)
 
+All results below were obtained in the cloud development container (Linux) unless stated otherwise. Native Windows evidence is listed under "Verification evidence by environment".
+
 | ID | Result | Notes |
 | --- | --- | --- |
 | V-01 | Pass | uv 0.11.32: `uv init --app --python 3.12`, `uv add`, `uv add --dev`, `uv sync --frozen` work as documented |
@@ -166,15 +213,17 @@ All packages are on the approved list in docs/05 §3; no package outside it was 
 | V-18 | **Pass (gate 2)** | `init-dev-storage` created `ps5-documents-dev` (`.env`) and `ps5-documents-test` (`.env.test`) with versioning Enabled; second runs say "already exists (left unchanged)", exit 0; also from inside the app container; refuses `APP_ENV=production` (exit 2, before contacting storage). Automated: `test_v18_*` (recreates the test bucket on every run) |
 | V-19 | **Pass (gate 3)** | With the app's credentials and `create_s3_client`: PUT/GET of 256 KiB byte-identical, SHA-256 equal, HeadBucket OK, for both identities. Each identity is refused (403) on the other's bucket. Automated: `test_v19_*`, `test_credentials_are_limited_to_their_own_bucket` |
 | V-10–V-15, V-17 | Not run | Not in M0 scope (S-02, M1, M5, M7, before P1) |
-| Clean image build (M0 review item 3) | **BLOCKED** (environment) | `docker build -t hive-docs:local .` on the unmodified, committed Dockerfile (identical to `5402bf9`) failed in 9 s with exit code 1: in the build's `RUN` containers `apt-get update` reports `Could not resolve 'deb.debian.org'` (no DNS or direct egress for containers in this sandbox; `npm ci` was cancelled with it). Diagnostic with CLI flags only (`--network host` plus proxy build arguments, separate tag; no Dockerfile change, no TLS bypass): apt's plain-HTTP Debian sources get `405 Method Not Allowed` from the sandbox proxy, which tunnels HTTPS only, and HTTPS downloads would require trusting the proxy's interception CA inside the build. Both causes are environmental. `hive-docs:local` was not changed (still image `7d9bafcb…`, built earlier through the sandbox-derived Dockerfile from commit `5402bf9` code). **Not run, because the clean image does not exist:** Compose with that image, `/healthz`, `/readyz`, SPA load, storage |
+| Clean image build and Compose verification (M0 exit criteria 1 and 8) | **BLOCKED / UNVERIFIED** in both environments | **Windows laptop:** Docker Desktop cannot run (hardware virtualization disabled; BIOS access blocked by an unknown administrator password; no further BIOS attempt), so the build was not attempted there. **Cloud container:** `docker build -t hive-docs:local .` on the unmodified, committed Dockerfile (unchanged since `5402bf9`, also at `0ea973c`) failed in 9 s with exit code 1: in the build's `RUN` containers `apt-get update` reports `Could not resolve 'deb.debian.org'` (no DNS or direct egress for containers in the cloud container's sandbox; `npm ci` was cancelled with it). Diagnostic with CLI flags only (`--network host` plus proxy build arguments, separate tag; no Dockerfile change, no TLS bypass): apt's plain-HTTP Debian sources get `405 Method Not Allowed` from the sandbox proxy, which tunnels HTTPS only, and HTTPS downloads would require trusting the proxy's interception CA inside the build. Both causes are environmental. `hive-docs:local` was not changed (still image `7d9bafcb…`, built earlier through the sandbox-derived Dockerfile from commit `5402bf9` code). **Not run, because the clean image does not exist:** Compose with that image, `/healthz`, `/readyz`, SPA load, storage |
 
 ## Known issues
 
 | Severity (S1–S4) | Description | Status |
 | --- | --- | --- |
 | S3 | SeaweedFS's internal ports (master 9333, volume 8080, filer 8888/18888, including an unauthenticated filer IAM gRPC service) are reachable inside the compose network. They are not published to the host; only the app and database containers share the network. Local development only (the cloud uses Spaces). Possible mitigation: JWT keys in a SeaweedFS `security.toml` | Open (accepted for local) |
-| S3 | **Clean build of the committed Dockerfile is BLOCKED in this sandbox** (no DNS or egress for build containers; HTTPS-only intercepting proxy). It needs one run on a machine with normal network access: `docker build -t hive-docs:local .`, then `docker compose up -d` and checks of `/healthz`, `/readyz`, the SPA and storage | Open (developer action) |
-| S4 | The `hive-docs:local` image in this sandbox (and the running `app` container) is the earlier build from the sandbox-derived Dockerfile at commit `5402bf9`; it contains **neither** the 405 nor the HEAD correction. The corrected code was verified with the test suite and with a host uvicorn over real HTTP (raw sockets: 0 body bytes for HEAD), not in a container | Open (resolved by the clean build) |
+| S3 | **The clean build of the committed Dockerfile and the Compose verification are BLOCKED / UNVERIFIED in both available environments:** the cloud container (no DNS or egress for build containers; HTTPS-only intercepting proxy) and the developer's Windows laptop (Docker Desktop unavailable: hardware virtualization disabled, BIOS access blocked, no further BIOS attempt). They need a Docker-capable machine with virtualization enabled and normal network access: `docker build -t hive-docs:local .`, `docker compose up -d`, then checks of `/healthz`, `/readyz`, the SPA and storage | Open (needs another machine) |
+| S2 | **Demonstration runtime risk:** the documented demonstration runtime is the local Docker stack on the presenter laptop (D-1, MUST COMPLETE; 10 §7, §8; DC-01, DC-17). If the developer's Windows laptop is the intended presenter laptop, it cannot run that stack. A Docker-capable presenter or backup machine is needed by M8, or a decision through 14 §6 | Open (risk; developer decision before M8) |
+| S3 | Native Windows has no PostgreSQL 16 or SeaweedFS yet: the documented setup starts both with Docker Compose (05 §6.2, §10), so the backend integration suite cannot run natively until the developer records how they are provided (see the native-Windows arrangement) | Open (M1 prerequisite) |
+| S4 | The `hive-docs:local` image in the cloud container (and its running `app` container) is the earlier build from the sandbox-derived Dockerfile at commit `5402bf9`; it contains **neither** the 405 nor the HEAD correction. The corrected code was verified with the test suite and with a host uvicorn over real HTTP (raw sockets: 0 body bytes for HEAD), not in a container | Open (resolved by the clean build) |
 | — | ~~`HEAD` on GET routes returned 405~~: resolved at 19:30, every GET resource answers HEAD (07 §1.14) | Closed |
 | — | ~~`docs/14` §6 had no decision entry for the HEAD rule~~: resolved in the final documentation cleanup, decision #10 | Closed |
 | S4 | M4 and M5 (E-20 preview, E-22 download): HEAD must run the same checks as GET without recording `document.pdf_downloaded`; header fields known only after generating the content may be omitted (07 §1.14) | Open (M4/M5 note) |
@@ -194,7 +243,15 @@ All packages are on the approved list in docs/05 §3; no package outside it was 
 
 ## Next steps
 
-- Developer: review the uncommitted M0 corrections (405 and HEAD: code, tests, documentation 1.2) and commit them if approved; `5402bf9` is unchanged.
-- Developer: run `docker build -t hive-docs:local .` and `docker compose up -d` once on a machine with normal network access; check `/healthz`, `/readyz`, the SPA and storage.
-- Developer: authorise a push of branch `claude/busy-bell-14l7rh` if wanted (this cloud container is ephemeral; nothing is pushed).
-- M1 (database, authentication, app shell) when authorised: migration `0001_identity`, Argon2id, sessions, CSRF, E-03 to E-05, `create-demo-account`, login page, shell.
+- Developer: review and approve this PROGRESS.md reconciliation. It is an uncommitted change; committing it is the developer's decision.
+- Developer: decide on M0 acceptance with the outstanding Docker verification (exit criterion 8 open, criterion 1 only partly verified; see "M0 acceptance status").
+- Developer: CP1 response (10 §6.1). CP1 (Mon 22:30 IST) was missed. The documented response is to stop for the night, finish M1 first thing Tuesday and apply R5. Whether to apply R5 is the developer's decision (10 §9); if it is applied, record it under "Reduction rules applied" with the time.
+- Docker verification (outstanding): on a Docker-capable machine with hardware virtualization enabled and normal network access, run `docker build -t hive-docs:local .` and `docker compose up -d`, then check `/healthz`, `/readyz`, the SPA and storage. This cannot be done on the current Windows laptop, and no further BIOS attempt will be made. It is needed for D-1 by M8 at the latest (10 §8; DC-01, DC-17).
+- **Next milestone: M1, Database, authentication, app shell** (10 §3; estimate 2.5–3 h). Tasks M1.1 to M1.5: Alembic with `MIGRATION_DATABASE_URL` and migration `0001_identity` (including `trg_audit_events_append_only` and grants); Argon2id; sessions (`token_hash`, idle and absolute expiry) and cookie attributes; E-03, E-04, E-05; the CSRF HMAC and Origin middleware; login throttling from `audit_events`; CLI `create-demo-account`; frontend login page, route guard, app shell, sign-out and 404 page. Tests: UT-SEC-01, UT-SEC-02, IT-AUTH-01 to IT-AUTH-06, DB-01, DB-07. Exit: sign in and out in the browser; tests green.
+- **M1 prerequisites:**
+  1. The developer's explicit go-ahead naming M1 (15 §4), after the M0 acceptance decision.
+  2. A PostgreSQL 16 server providing `ps5` and `ps5_test`, the owner role `ps5_migrator` and the restricted role `ps5_app` (06 §11): the cloud container's Compose stack, or a native Windows setup recorded by the developer under the native-Windows arrangement.
+  3. A SeaweedFS S3 endpoint (ADR-13) for the existing integration suite (readiness, conventions, SPA, HEAD, storage gate), because every milestone runs the whole backend suite (15 §2, rule 7): the cloud container's Compose service, or a native setup recorded by the developer.
+  4. `.env` and `.env.test` for that environment, including `MIGRATION_DATABASE_URL` (05 §9), which Alembic needs from M1.
+  5. M1 verification items: V-12 (the demonstration browser keeps `Secure` cookies on `http://localhost`) and V-13 (argon2-cffi defaults meet the OWASP minimum for Argon2id).
+  6. Carry-over: once the CSRF middleware exists, the 405 tests that use POST, PATCH or DELETE must send a valid session, CSRF token and Origin (see "Known issues").
