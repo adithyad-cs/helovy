@@ -1,16 +1,30 @@
 import { Link } from 'react-router'
 
-/** docs/08 §22. The Dashboard link for signed-in users arrives with sessions in M1. */
-export function NotFoundPage() {
-  return (
-    <main className="mx-auto flex min-h-screen max-w-[1200px] flex-col justify-center gap-4 px-4 md:px-6 lg:px-8">
-      <h1 className="font-serif text-3xl font-semibold text-ink">Page not found</h1>
+import { useMe } from '../api/auth'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
+
+/** docs/08 §22: links to the dashboard when signed in, otherwise home. */
+export function NotFoundPage({ inShell = false }: { inShell?: boolean }) {
+  const me = useMe()
+  useDocumentTitle('Page not found')
+  const signedIn = Boolean(me.data)
+  const body = (
+    <div className="flex flex-col gap-4">
+      <h1 tabIndex={-1} className="font-serif text-2xl font-semibold text-ink outline-none md:text-[30px] md:leading-9">
+        Page not found
+      </h1>
       <p className="text-base text-ink-muted">The page you&apos;re looking for doesn&apos;t exist.</p>
       <p>
-        <Link className="font-medium text-accent underline hover:text-accent-hover" to="/">
-          Home
+        <Link className="font-medium text-accent underline underline-offset-2 hover:text-accent-hover" to={signedIn ? '/app' : '/'}>
+          {signedIn ? 'Dashboard' : 'Home'}
         </Link>
       </p>
+    </div>
+  )
+  if (inShell) return body
+  return (
+    <main id="main" className="mx-auto flex min-h-screen max-w-[1200px] flex-col justify-center px-4 md:px-6 lg:px-8">
+      {body}
     </main>
   )
 }

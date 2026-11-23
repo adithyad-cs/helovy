@@ -6,8 +6,8 @@ response, turns unhandled exceptions into a 500 problem response (so even that r
 carries the headers), drops the body of every HEAD response (docs/07 §1.14; RFC 9110
 §9.3.2) while keeping the GET status and headers, and writes one JSON access line per request.
 
-The Origin and CSRF check for unsafe methods sits between the body limit and routing;
-it arrives with sessions in M1.
+The Origin and CSRF check for unsafe methods sits between the body limit and routing
+(``app.modules.auth.csrf``, owned by the auth module; docs/04 §3).
 """
 
 from __future__ import annotations
@@ -119,8 +119,9 @@ class RequestContextMiddleware:
                     "route": _route_label(scope),
                     "status": response["status"],
                     "duration_ms": round((time.perf_counter() - started) * 1000, 1),
-                    "org_id": None,
-                    "user_id": None,
+                    # Set by the session dependency: identifiers only (docs/12 §10).
+                    "org_id": scope.get("state", {}).get("log_org_id"),
+                    "user_id": scope.get("state", {}).get("log_user_id"),
                 },
             )
             request_id_var.reset(token)

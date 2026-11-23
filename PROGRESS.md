@@ -2,11 +2,21 @@
 
 ## Current status
 
-- Active milestone: **M0, implemented and corrected, committed and pushed; acceptance conditional on the outstanding Docker verification** (see "M0 acceptance status"). M1 has not started.
-- Last updated: 2026-11-23 22:55 IST (reconciled with the actual repository state)
-- Checkpoints: **CP1 (Mon 22:30 IST) missed**: M0 is complete apart from the Docker verification, and M1 has not started. Documented response (10 §6.1): stop for the night, finish M1 first thing Tuesday, apply R5. Applying a reduction rule is the developer's decision (10 §9); R5 is not applied.
-- Git (verified 22:52 IST): branch `claude/busy-bell-14l7rh` at `0ea973c` "M0: HTTP 405 and HEAD corrections", parent `5402bf9` "M0: foundation and risk spikes". Both commits are pushed to `origin` (github.com/adithyad-cs/helovy); the branch is synchronized (0 ahead, 0 behind); the working tree was clean before this reconciliation; no tags. The developer verified the local Windows checkout against GitHub. This reconciliation of PROGRESS.md is an uncommitted change awaiting developer approval.
-- Environments: automated evidence in this file comes from the **cloud development container** (Linux) unless marked **native Windows**; see "Verification evidence by environment".
+- Active milestone: **M1 complete; M2 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
+- Last updated: 2026-11-24 02:10 IST
+- M0: acceptance still **conditional** on the outstanding Docker verification (unchanged; see "M0 acceptance status"). It is not marked accepted.
+- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 02:10 IST Tuesday. No reduction rule has been applied (applying one is the developer's decision, 10 §9).
+- Environment for this run: the **cloud development container** (Linux) with the Compose `db` (PostgreSQL 16.16) and `storage` (SeaweedFS 4.54) services. The developer's Windows laptop is not attached to this session (no shared folder), so the native Windows PostgreSQL and SeaweedFS were **not** reached or tested; every result below is cloud-container evidence unless marked otherwise.
+
+## Autonomous run checkpoint (for restart recovery)
+
+| Item | State |
+| --- | --- |
+| Branch / last commit | `claude/busy-bell-14l7rh`; M1 commit follows `ca142b6` (PROGRESS reconciliation) |
+| Databases (cloud container) | `ps5_test`: recreated and migrated to head by every test run. `ps5` (development): not migrated yet (migrated in M8 for the demonstration data) |
+| Services | `docker compose` services `db` and `storage` healthy. The old `app` container still runs the `5402bf9` sandbox image on port 8000; browser checks use a host uvicorn on port 8001 against `ps5_test` |
+| Browser test account | Created in `ps5_test` only (wiped by the next test run); its random password lives in the session scratchpad, never in the repository |
+| Next concrete action | M2: migration `0002_parties`, E-06 to E-12, business profile and customer screens |
 
 ## M0 acceptance status
 
@@ -91,7 +101,7 @@
 | Milestone | Status | Started | Finished | Tests (pass/total) | Notes |
 | --- | --- | --- | --- | --- | --- |
 | M0 | Implemented and corrected; committed and pushed (`5402bf9`, `0ea973c`); acceptance conditional: Docker verification outstanding | 23 Nov 17:12 | 23 Nov 19:00 (corrections committed 19:52) | Backend 180/180 · FE-01..FE-03 3/3 (cloud container) | WeasyPrint 70.0 locked; SeaweedFS 4.54 verification gate passed (V-07, V-08, V-18, V-19). Reviews: 405 and HEAD contracts added (docs 1.2). The clean build of the committed Dockerfile and the Compose verification are BLOCKED in the cloud container and cannot run on the developer's Windows laptop. Two worker restarts during the session (Docker daemon restarted, no data lost) |
-| M1 | Not started | | | | |
+| M1 | **Done** (cloud container) | 24 Nov 01:30 | 24 Nov 02:10 | Backend 266/266 (UT-SEC-01/02, DB-01, DB-07, DB-08 part, IT-AUTH-01..06 all automated) · FE-01..FE-03 3/3 · browser sign-in/out flow in headless Chromium | Migration `0001_identity`; Argon2id; hashed session tokens with 24 h idle / 7 day absolute expiry; CSRF HMAC + Origin middleware before routing; DB-backed throttling; E-03..E-05; `create-demo-account`; login page, guard, shell, drawer, user menu, 404 |
 | M2 | Not started | | | | |
 | M3 | Not started | | | | |
 | M4 | Not started | | | | |
@@ -105,8 +115,8 @@
 | ID | Status (Not started / In progress / Done / Deferred) | Evidence (tests, DC) | Notes |
 | --- | --- | --- | --- |
 | L-01 | Not started | — | M0 has an honest placeholder page at `/` (replaced in M7) |
-| L-02 | Not started | — | M1 |
-| L-03 | Not started | — | M1 (the 08 §22 not-found page exists; signed-in links arrive with sessions) |
+| L-02 | **Done** | IT-AUTH-01..06, UT-SEC-01/02, CLI tests; browser: guard redirect, wrong-password message, sign-in, cookie flags, sign-out, Back → /login | No sign-up, no default credentials, no auto-login |
+| L-03 | **Done** | Browser: nav with `aria-current`, focus to `h1` on navigation, 360 px drawer, unknown `/app/...` → 404 page, `next` return after sign-in | Business, Customers, Invoices and Templates show an honest "not available in this build yet" page until M2–M6 replace them |
 | L-04 | Not started | — | M2 |
 | L-05 | Not started | — | M2 |
 | L-06 | Not started | — | M3 |
@@ -117,7 +127,7 @@
 | L-11 | Not started | — | M5 (the SeaweedFS gate proved private storage and authenticated round trips) |
 | L-12 | Not started | — | M6 |
 | L-13 | Not started | — | M6 |
-| L-14 | Not started | — | M1–M6 |
+| L-14 | In progress | `current_tenant` dependency; org from the session only | Tenant endpoints arrive M2–M6 with IT-TEN |
 | L-15 | In progress | FE-01..FE-03 | Design tokens, fonts, breakpoints and the reduced-motion base rule are in place; pages arrive M1–M7 |
 | L-16 | In progress | IT-HLT-01 (partial); Compose stack healthy in the cloud container with the sandbox-derived image of `5402bf9` code | Compose with named volumes and 127.0.0.1 ports, E-01/E-02, no committed secrets. The clean build of the committed Dockerfile and Compose with the current code are outstanding (BLOCKED). DC-17 (persistence across `down`/`up`) is verified in M8 |
 
@@ -163,6 +173,18 @@
 | 23 Nov 19:52 | The reviewed corrections were committed as `0ea973c` "M0: HTTP 405 and HEAD corrections" (18 files; parent `5402bf9`), and branch `claude/busy-bell-14l7rh` was pushed to `origin` with upstream tracking. No force push; nothing on `main`. The repository had no branches before, so GitHub made this branch its default branch | 15 §4 | Developer (authorisation after review) |
 | 23 Nov 22:55 (recorded) | **Temporary native-Windows development arrangement:** development may continue natively on the developer's Windows laptop while Docker cannot run there. The product architecture, stack, Dockerfile and docker-compose.yml are unchanged; native results are recorded separately from cloud-container results (see the section near the top of this file) | — (development environment, not product; 04 and 05 unchanged) | Developer |
 | 23 Nov 22:55 (recorded) | Docker is unavailable on the developer's Windows laptop (hardware virtualization disabled; BIOS access blocked by an unknown administrator password; no further BIOS attempt). The clean Docker build and the Compose verification remain BLOCKED / UNVERIFIED and are not marked as passed | 10 §8 (D-1), 05 §7 | Developer (reported) |
+| 24 Nov 01:35 | **Autonomous M1–M8 run** under the developer's master directive (24 Nov), which is the go-ahead naming the milestones (15 §4). Milestones are committed and pushed one at a time; M0 stays conditionally accepted | 15 §3, §4 | Developer (directive) |
+| 24 Nov 01:40 | Constraints that 06 describes without a name are named `<table>_<column>_ck` / `_fk` (for example `users_email_ck`, `memberships_org_fk`, `audit_events_event_type_ck`); every name 06 gives is exact (DB-01 checks them through `pg_catalog`). Trigger function `audit_events_append_only()` | 06 §14 rule 2 | Claude Code (naming detail) |
+| 24 Nov 01:45 | The app role needs **no** sequence grant for the `audit_events` identity column (verified by a test inserting as `ps5_app`) | 06 §11 "verify whether it is needed" | — (verified) |
+| 24 Nov 01:50 | Module boundaries (04 §3): auth resolves the session and stores a `Tenant` on `request.state`; tenant modules read it through `tenancy.current_tenant` and never import auth. E-05's `business` summary is provided by the businesses module through an application-factory hook | 04 §3 | Claude Code |
+| 24 Nov 01:50 | CSRF check (owned by auth, placed after the body limit and before routing): finds the session row by token hash **whatever its state**, so a revoked cookie with its own token reaches the session dependency and gets 401 (IT-AUTH-04); a missing cookie or wrong token → 403. Unsafe = every method except GET, HEAD, OPTIONS, TRACE | 07 §1.3, §1.13; 12 §4.2 | Claude Code |
+| 24 Nov 01:55 | Throttling counts `auth.login_failed` events with reason `invalid_credentials` or `inactive`; refused (`throttled`) attempts are recorded but **not counted**, so a lock-out ends 15 minutes after the fifth real failure. `Retry-After` = seconds until fewer than 5 counted failures remain in the window | 12 §2.2; 07 §1.9 | Claude Code (detail not specified) |
+| 24 Nov 01:55 | Sign-in failures are audited with `org_id` and `actor_user_id` NULL and the `subject_hash`; the email itself is never stored. An inactive user is verified first (same timing), then refused with reason `inactive` | 06 §3.15, §9; 12 §2.2 | Claude Code |
+| 24 Nov 01:55 | CSRF token = base64url without padding of HMAC-SHA256(CSRF_SECRET key bytes, the session UUID's canonical text) | 12 §4.2 | Claude Code (encoding detail) |
+| 24 Nov 02:00 | One injectable clock (`app.state.clock`): session times, audit times and throttling windows use it, so tests freeze time (IT-AUTH-03, IT-AUTH-05) | 04 §5; 11 §1 | Claude Code |
+| 24 Nov 02:00 | `create-demo-account` connects as the app role (`DATABASE_URL`), the least privilege that can insert the account rows; it validates email, name (1–120), organization (1–200) and password (12–1024) before connecting | 05 §8; 06 §11 | Claude Code |
+| 24 Nov 02:00 | Request bodies must be `application/json` (router dependency `require_json_body`, 400 otherwise); custom validators raise Pydantic errors whose type is the documented field code; `string_type` maps to `must_be_string` | 07 §1.1, §1.5 | Claude Code |
+| 24 Nov 02:05 | **Tests updated, none weakened:** 41 earlier routing cases (405 and 404 with POST, PUT, PATCH or DELETE in test_conventions, test_spa, test_head) now send a valid session, CSRF token and Origin, as recorded in M0's known issues; 8 new cases assert that the CSRF check returns 403 before routing would give 405 or 404. Test fixtures moved to `tests/services.py` (shared by `tests/db` and `tests/integration`); the suite now resets `ps5_test` and migrates it to head once per run and truncates tables before each test | 07 §1.13; 11 §1 | Claude Code |
 
 ## Dependencies added (with approval)
 
@@ -212,7 +234,9 @@ All results below were obtained in the cloud development container (Linux) unles
 | V-16 | Pass | OFL 1.1 texts next to every bundled font (`OFL.txt`, `OFL-NotoSansDevanagari.txt`, `Inter-LICENSE.txt`, `SourceSerif4-LICENSE.md`); provenance and SHA-256 in `FONTS.md` |
 | V-18 | **Pass (gate 2)** | `init-dev-storage` created `ps5-documents-dev` (`.env`) and `ps5-documents-test` (`.env.test`) with versioning Enabled; second runs say "already exists (left unchanged)", exit 0; also from inside the app container; refuses `APP_ENV=production` (exit 2, before contacting storage). Automated: `test_v18_*` (recreates the test bucket on every run) |
 | V-19 | **Pass (gate 3)** | With the app's credentials and `create_s3_client`: PUT/GET of 256 KiB byte-identical, SHA-256 equal, HeadBucket OK, for both identities. Each identity is refused (403) on the other's bucket. Automated: `test_v19_*`, `test_credentials_are_limited_to_their_own_bucket` |
-| V-10–V-15, V-17 | Not run | Not in M0 scope (S-02, M1, M5, M7, before P1) |
+| V-12 | Pass (Chromium, cloud container) | Headless Chromium kept the `Secure` `ps5_session` cookie on `http://localhost:8001` (HttpOnly, Secure, SameSite=Lax, Path=/, host-only). To re-check in the presenter's Chrome in M8 (DC-04) |
+| V-13 | Pass | argon2-cffi 25.1.0 defaults: Argon2id, m = 65,536 KiB (64 MiB), t = 3, p = 4, above the OWASP minimum (19 MiB, t = 2, p = 1); asserted by UT-SEC-01 |
+| V-10, V-11, V-14, V-15, V-17 | Not run | Not in scope yet (S-02, M5, M7, before P1) |
 | Clean image build and Compose verification (M0 exit criteria 1 and 8) | **BLOCKED / UNVERIFIED** in both environments | **Windows laptop:** Docker Desktop cannot run (hardware virtualization disabled; BIOS access blocked by an unknown administrator password; no further BIOS attempt), so the build was not attempted there. **Cloud container:** `docker build -t hive-docs:local .` on the unmodified, committed Dockerfile (unchanged since `5402bf9`, also at `0ea973c`) failed in 9 s with exit code 1: in the build's `RUN` containers `apt-get update` reports `Could not resolve 'deb.debian.org'` (no DNS or direct egress for containers in the cloud container's sandbox; `npm ci` was cancelled with it). Diagnostic with CLI flags only (`--network host` plus proxy build arguments, separate tag; no Dockerfile change, no TLS bypass): apt's plain-HTTP Debian sources get `405 Method Not Allowed` from the sandbox proxy, which tunnels HTTPS only, and HTTPS downloads would require trusting the proxy's interception CA inside the build. Both causes are environmental. `hive-docs:local` was not changed (still image `7d9bafcb…`, built earlier through the sandbox-derived Dockerfile from commit `5402bf9` code). **Not run, because the clean image does not exist:** Compose with that image, `/healthz`, `/readyz`, SPA load, storage |
 
 ## Known issues
@@ -222,12 +246,12 @@ All results below were obtained in the cloud development container (Linux) unles
 | S3 | SeaweedFS's internal ports (master 9333, volume 8080, filer 8888/18888, including an unauthenticated filer IAM gRPC service) are reachable inside the compose network. They are not published to the host; only the app and database containers share the network. Local development only (the cloud uses Spaces). Possible mitigation: JWT keys in a SeaweedFS `security.toml` | Open (accepted for local) |
 | S3 | **The clean build of the committed Dockerfile and the Compose verification are BLOCKED / UNVERIFIED in both available environments:** the cloud container (no DNS or egress for build containers; HTTPS-only intercepting proxy) and the developer's Windows laptop (Docker Desktop unavailable: hardware virtualization disabled, BIOS access blocked, no further BIOS attempt). They need a Docker-capable machine with virtualization enabled and normal network access: `docker build -t hive-docs:local .`, `docker compose up -d`, then checks of `/healthz`, `/readyz`, the SPA and storage | Open (needs another machine) |
 | S2 | **Demonstration runtime risk:** the documented demonstration runtime is the local Docker stack on the presenter laptop (D-1, MUST COMPLETE; 10 §7, §8; DC-01, DC-17). If the developer's Windows laptop is the intended presenter laptop, it cannot run that stack. A Docker-capable presenter or backup machine is needed by M8, or a decision through 14 §6 | Open (risk; developer decision before M8) |
-| S3 | Native Windows has no PostgreSQL 16 or SeaweedFS yet: the documented setup starts both with Docker Compose (05 §6.2, §10), so the backend integration suite cannot run natively until the developer records how they are provided (see the native-Windows arrangement) | Open (M1 prerequisite) |
+| S3 | Native Windows: the developer reports PostgreSQL 16.16 installed natively with `ps5`, `ps5_test` and both roles (init script run; role logins verified by the developer) and a native SeaweedFS `weed.exe` on 127.0.0.1:8333 refusing anonymous requests. Not verified from this session (the laptop is not attached). Still to verify natively: an authenticated PUT/GET round trip with the new `.env.test` keys, bucket scoping and `init-dev-storage` (the gate checks V-07, V-08, V-18, V-19), then `uv run pytest` | Open (developer to run natively) |
 | S4 | The `hive-docs:local` image in the cloud container (and its running `app` container) is the earlier build from the sandbox-derived Dockerfile at commit `5402bf9`; it contains **neither** the 405 nor the HEAD correction. The corrected code was verified with the test suite and with a host uvicorn over real HTTP (raw sockets: 0 body bytes for HEAD), not in a container | Open (resolved by the clean build) |
 | — | ~~`HEAD` on GET routes returned 405~~: resolved at 19:30, every GET resource answers HEAD (07 §1.14) | Closed |
 | — | ~~`docs/14` §6 had no decision entry for the HEAD rule~~: resolved in the final documentation cleanup, decision #10 | Closed |
 | S4 | M4 and M5 (E-20 preview, E-22 download): HEAD must run the same checks as GET without recording `document.pdf_downloaded`; header fields known only after generating the content may be omitted (07 §1.14) | Open (M4/M5 note) |
-| S4 | From M1, the Origin/CSRF middleware runs before routing (07 §1.13), so an unsafe request without a valid session token gets 403 before any 405. M1 must update the 405 tests that use POST, PATCH or DELETE to send a valid session, CSRF token and Origin | Open (M1 note) |
+| — | ~~405 tests with unsafe methods needed a session once the CSRF middleware existed~~: done in M1 (see decisions, 24 Nov 02:05) | Closed |
 | S4 | Pre-existing in the 1.1 documents, not changed by this revision: README, 00, 01 and PROJECT_SUMMARY still say no source code exists; 08 §15.3 paraphrases the SPECIMEN label in dialog copy (recorded in CONSISTENCY_AUDIT §2.1) | Open (documentation; not in scope) |
 | S4 | Starlette deprecates `httpx` for `TestClient` in favour of `httpx2` (one warning per test run). `httpx` is the approved package (05 §2) | Open; no change without approval |
 | S4 | In development, the FastAPI docs UI cannot load its CDN assets because of the CSP (12 §4.3); `/openapi.json` works. The docs UI is off in demo and production | Open (by design) |
@@ -243,15 +267,7 @@ All results below were obtained in the cloud development container (Linux) unles
 
 ## Next steps
 
-- Developer: review and approve this PROGRESS.md reconciliation. It is an uncommitted change; committing it is the developer's decision.
-- Developer: decide on M0 acceptance with the outstanding Docker verification (exit criterion 8 open, criterion 1 only partly verified; see "M0 acceptance status").
-- Developer: CP1 response (10 §6.1). CP1 (Mon 22:30 IST) was missed. The documented response is to stop for the night, finish M1 first thing Tuesday and apply R5. Whether to apply R5 is the developer's decision (10 §9); if it is applied, record it under "Reduction rules applied" with the time.
-- Docker verification (outstanding): on a Docker-capable machine with hardware virtualization enabled and normal network access, run `docker build -t hive-docs:local .` and `docker compose up -d`, then check `/healthz`, `/readyz`, the SPA and storage. This cannot be done on the current Windows laptop, and no further BIOS attempt will be made. It is needed for D-1 by M8 at the latest (10 §8; DC-01, DC-17).
-- **Next milestone: M1, Database, authentication, app shell** (10 §3; estimate 2.5–3 h). Tasks M1.1 to M1.5: Alembic with `MIGRATION_DATABASE_URL` and migration `0001_identity` (including `trg_audit_events_append_only` and grants); Argon2id; sessions (`token_hash`, idle and absolute expiry) and cookie attributes; E-03, E-04, E-05; the CSRF HMAC and Origin middleware; login throttling from `audit_events`; CLI `create-demo-account`; frontend login page, route guard, app shell, sign-out and 404 page. Tests: UT-SEC-01, UT-SEC-02, IT-AUTH-01 to IT-AUTH-06, DB-01, DB-07. Exit: sign in and out in the browser; tests green.
-- **M1 prerequisites:**
-  1. The developer's explicit go-ahead naming M1 (15 §4), after the M0 acceptance decision.
-  2. A PostgreSQL 16 server providing `ps5` and `ps5_test`, the owner role `ps5_migrator` and the restricted role `ps5_app` (06 §11): the cloud container's Compose stack, or a native Windows setup recorded by the developer under the native-Windows arrangement.
-  3. A SeaweedFS S3 endpoint (ADR-13) for the existing integration suite (readiness, conventions, SPA, HEAD, storage gate), because every milestone runs the whole backend suite (15 §2, rule 7): the cloud container's Compose service, or a native setup recorded by the developer.
-  4. `.env` and `.env.test` for that environment, including `MIGRATION_DATABASE_URL` (05 §9), which Alembic needs from M1.
-  5. M1 verification items: V-12 (the demonstration browser keeps `Secure` cookies on `http://localhost`) and V-13 (argon2-cffi defaults meet the OWASP minimum for Argon2id).
-  6. Carry-over: once the CSRF middleware exists, the 405 tests that use POST, PATCH or DELETE must send a valid session, CSRF token and Origin (see "Known issues").
+- **M2 (next, in progress in this run):** migration `0002_parties`; E-06 to E-12 with 09 §4 validation, ETags and organization scoping; business profile and customer screens. Tests IT-BIZ-01..03, IT-CUS-01..02, IT-TEN-01 for these endpoints.
+- Then M3 to M8 in order (10 §3), each committed and pushed when its tests pass.
+- Developer (outstanding from M0): the Docker verification on a Docker-capable machine (`docker build -t hive-docs:local .`, `docker compose up -d`, `/healthz`, `/readyz`, SPA, storage). Not possible on the current Windows laptop; no further BIOS attempt.
+- Developer (native Windows): run the storage gate and the backend suite natively once the native SeaweedFS identity matches `.env.test` (see Known issues).

@@ -13,7 +13,7 @@ from pydantic import SecretStr
 from sqlalchemy import text
 
 from app.core.config import Settings
-from tests.integration.conftest import make_client
+from tests.services import make_client
 
 UNREACHABLE_DB = "postgresql+psycopg://ps5_app:unused@127.0.0.1:1/ps5_test"
 UNREACHABLE_S3 = "http://127.0.0.1:1"

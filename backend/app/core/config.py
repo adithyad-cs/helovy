@@ -125,6 +125,39 @@ class Settings(BaseSettings):
         return self.app_env == "development"
 
 
+class MigrationSettings(BaseSettings):
+    """Only what Alembic needs: the owner role's URL (docs/05 §9, docs/06 §14 rule 3)."""
+
+    model_config = SettingsConfigDict(
+        env_file=REPO_ROOT / ".env",
+        env_file_encoding="utf-8",
+        env_ignore_empty=True,
+        extra="ignore",
+        hide_input_in_errors=True,
+        frozen=True,
+    )
+
+    migration_database_url: SecretStr
+
+    @field_validator("migration_database_url")
+    @classmethod
+    def _postgres_url(cls, value: SecretStr) -> SecretStr:
+        if not value.get_secret_value().startswith("postgresql+psycopg://"):
+            raise ValueError("must start with postgresql+psycopg://")
+        return value
+
+
+def load_migration_url() -> str:
+    """MIGRATION_DATABASE_URL, or ConfigError naming the variable (never its value)."""
+    try:
+        return MigrationSettings().migration_database_url.get_secret_value()
+    except ValidationError:
+        raise ConfigError(
+            "Invalid configuration: MIGRATION_DATABASE_URL is required and must start with "
+            "postgresql+psycopg://"
+        ) from None
+
+
 def _secret_key_bytes(secret: str) -> bytes:
     return bytes.fromhex(secret) if _HEX.match(secret) else secret.encode("utf-8")
 

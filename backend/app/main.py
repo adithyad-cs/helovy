@@ -19,12 +19,15 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from app.core.clock import Clock, SystemClock
 from app.core.config import Settings, load_settings
-from app.core.db import create_db_engine
+from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import problem_response, register_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import BodySizeLimitMiddleware, RequestContextMiddleware
 from app.core.routing import HeadAwareRoute
+from app.modules.auth.csrf import CsrfOriginMiddleware
+from app.modules.auth.routes import router as auth_router
 from app.modules.health.routes import router as health_router
 from app.modules.storage.client import create_s3_client
 
@@ -96,7 +99,12 @@ def _mount_spa(app: FastAPI, static_dir: Path) -> None:
     app.add_exception_handler(404, not_found)
 
 
-def create_app(settings: Settings | None = None, *, static_dir: Path = STATIC_DIR) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    *,
+    static_dir: Path = STATIC_DIR,
+    clock: Clock | None = None,
+) -> FastAPI:
     settings = settings or load_settings()
     configure_logging(settings.log_level)
 
@@ -117,16 +125,21 @@ def create_app(settings: Settings | None = None, *, static_dir: Path = STATIC_DI
     # included later bring their own HeadAwareRoute class (docs/07 §1.14).
     app.router.route_class = HeadAwareRoute
     app.state.settings = settings
+    app.state.clock = clock or SystemClock()
     app.state.db_engine = create_db_engine(settings)
+    app.state.db_sessions = create_session_factory(app.state.db_engine)
     app.state.s3 = create_s3_client(settings)
 
     # Starlette wraps in reverse order of registration: the last added is the outermost.
-    # Effective order: request ID + security headers → body size limit → routing.
+    # Effective order (docs/04 §5): request ID + security headers → body size limit →
+    # Origin and CSRF check for unsafe methods → routing.
+    app.add_middleware(CsrfOriginMiddleware, origin=settings.app_origin, csrf_key=settings.csrf_key)
     app.add_middleware(BodySizeLimitMiddleware)
     app.add_middleware(RequestContextMiddleware, hsts=settings.is_https)
     register_error_handlers(app)
 
     app.include_router(health_router)
+    app.include_router(auth_router)
     _mount_spa(app, static_dir)
     logger.info("application created", extra={"event": "app.created"})
     return app

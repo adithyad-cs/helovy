@@ -13,6 +13,7 @@ from typing import Any, cast
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.routing import Match, Mount
 from starlette.staticfiles import StaticFiles
@@ -158,9 +159,29 @@ _FIELD_CODES = {
     "extra_forbidden": "unknown_field",
     "string_too_long": "too_long",
     "string_too_short": "too_short",
+    "string_type": "must_be_string",
     "literal_error": "invalid_choice",
     "enum": "invalid_choice",
 }
+
+# Custom validators raise errors whose type already is a documented field code (07 §1.5).
+DOCUMENTED_FIELD_CODES = frozenset(
+    {
+        "required", "unknown_field", "not_null",
+        "must_be_string", "invalid_decimal", "too_many_decimals",
+        "out_of_range", "too_long", "too_short", "invalid_format", "invalid_choice",
+        "exceeds_gross", "state_mismatch", "not_found", "inactive",
+        "too_many_lines", "no_lines", "total_too_large", "zero_total",
+        "due_date_before_issue_date",
+    }
+)  # fmt: skip
+
+
+def field_code(error_type: str) -> str:
+    """The docs/07 §1.5 field error code for a Pydantic error type."""
+    if error_type in DOCUMENTED_FIELD_CODES:
+        return error_type
+    return _FIELD_CODES.get(error_type, "invalid_format")
 
 
 def json_pointer(loc: tuple[int | str, ...]) -> str:
@@ -242,7 +263,7 @@ async def _validation_error_handler(request: Request, exc: Exception) -> JSONRes
     errors = [
         {
             "pointer": json_pointer(tuple(error.get("loc", ()))),
-            "code": _FIELD_CODES.get(str(error.get("type")), "invalid_format"),
+            "code": field_code(str(error.get("type"))),
             "message": str(error.get("msg", "Invalid value.")),
         }
         for error in raw
@@ -256,7 +277,14 @@ async def _validation_error_handler(request: Request, exc: Exception) -> JSONRes
     )
 
 
+async def _database_unavailable_handler(request: Request, exc: Exception) -> JSONResponse:
+    # Connection failures and lock timeouts; never echo the driver message (docs/07 §1.5).
+    logger.warning("database unavailable: %s", type(exc).__name__)
+    return problem_response("dependency_unavailable", instance=request.url.path)
+
+
 def register_error_handlers(app: FastAPI) -> None:
+    app.add_exception_handler(OperationalError, _database_unavailable_handler)
     app.add_exception_handler(AppError, _app_error_handler)
     app.add_exception_handler(StarletteHTTPException, _http_error_handler)
     app.add_exception_handler(RequestValidationError, _validation_error_handler)

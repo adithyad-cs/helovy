@@ -23,7 +23,8 @@ from starlette.routing import Route
 
 from app.core.config import Settings
 from app.core.routing import HeadAwareRoute
-from tests.integration.conftest import SPA_INDEX, build_test_spa, make_client
+from tests.factories import trusted
+from tests.services import SPA_INDEX, build_test_spa, make_client
 
 # Values that legitimately differ between two requests: each response has its own request ID.
 VOLATILE_HEADERS = {"x-request-id", "date"}
@@ -144,7 +145,7 @@ def test_allow_union_inside_an_included_router(settings: Settings, no_spa: Path)
     for client in make_client(settings, no_spa):
         client.app.include_router(router)  # type: ignore[attr-defined]
         assert_head_matches_get(client, "/api/v1/test-included/a1")
-        response = client.delete("/api/v1/test-included/a1")
+        response = trusted(client).delete("/api/v1/test-included/a1")
         assert response.status_code == 405
         assert response.headers["allow"] == "GET, HEAD, PATCH"
 

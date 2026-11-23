@@ -1,9 +1,9 @@
 """IT-GEN-01 (partial, M0) and the security headers of docs/12 §4.3.
 
-Covered now: problem+json shape, X-Request-ID echo, Cache-Control: no-store, body over
-256 KiB → 413, unsupported method → 405 with Allow (docs/07 §1.13), security headers,
-unhandled errors → 500 without internals, docs UI only in development. The unknown-field
-and non-JSON-body checks need body endpoints (M1).
+Covered here: problem+json shape, X-Request-ID echo, Cache-Control: no-store, body over
+256 KiB → 413, unsupported method → 405 with Allow (docs/07 §1.13), the CSRF check before
+routing, security headers, unhandled errors → 500 without internals, docs UI only in
+development. The unknown-field and non-JSON-body checks are in test_auth.py (E-03 body).
 """
 
 from __future__ import annotations
@@ -18,7 +18,8 @@ from fastapi.testclient import TestClient
 from app.core.config import Settings
 from app.core.errors import PROBLEM_TYPE_BASE, AppError
 from app.core.middleware import MAX_BODY_BYTES, SECURITY_HEADERS
-from tests.integration.conftest import make_client
+from tests.factories import trusted
+from tests.services import make_client
 
 GENERATED_ID = re.compile(r"^req_[A-Za-z0-9_-]{16}$")
 
@@ -50,8 +51,9 @@ def test_unsupported_method_on_existing_route_is_405_with_allow(
     client: TestClient, method: str, path: str
 ) -> None:
     # docs/07 §1.13; RFC 9110 §15.5.6. Never answered as 404. GET resources also list
-    # HEAD (docs/07 §1.14).
-    response = client.request(method, path)
+    # HEAD (docs/07 §1.14). Unsafe methods carry a valid session, CSRF token and Origin,
+    # because the CSRF check runs before routing (see the precedence test below).
+    response = trusted(client).request(method, path)
     assert response.status_code == 405
     assert response.headers["allow"] == "GET, HEAD"
     assert response.headers["content-type"] == "application/problem+json"
@@ -78,7 +80,7 @@ def test_allow_lists_every_method_of_a_path_served_by_several_routes(
         app.add_api_route("/api/v1/test-multi/{item_id}", read_item, methods=["GET"])  # type: ignore[attr-defined]
         app.add_api_route("/api/v1/test-multi/{item_id}", update_item, methods=["PATCH"])  # type: ignore[attr-defined]
         assert client.get("/api/v1/test-multi/a1").status_code == 200
-        response = client.delete("/api/v1/test-multi/a1")
+        response = trusted(client).delete("/api/v1/test-multi/a1")
         assert response.status_code == 405
         assert response.headers["allow"] == "GET, HEAD, PATCH"
         assert response.json()["code"] == "method_not_allowed"
@@ -99,8 +101,9 @@ def test_405_depends_on_the_route_only_and_404_is_preserved(
         assert missing.json()["code"] == "not_found"
         assert "allow" not in missing.headers
 
-        first = client.put("/api/v1/test-records/does-not-exist")
-        second = client.put("/api/v1/test-records/4e6a8c0d-2f3b-4c5e-9a7d-9f1b3d5f7a9c")
+        session = trusted(client)
+        first = session.request("PUT", "/api/v1/test-records/does-not-exist")
+        second = session.request("PUT", "/api/v1/test-records/4e6a8c0d-2f3b-4c5e-9a7d-9f1b3d5f7a9c")
         assert first.status_code == second.status_code == 405
         assert first.headers["allow"] == second.headers["allow"] == "GET, HEAD"
 
@@ -112,9 +115,20 @@ def test_405_depends_on_the_route_only_and_404_is_preserved(
 
 @pytest.mark.parametrize("method", ["GET", "POST", "PUT", "PATCH", "DELETE"])
 def test_path_matching_no_route_is_404_for_every_method(client: TestClient, method: str) -> None:
-    response = client.request(method, "/api/v1/does-not-exist")
+    response = trusted(client).request(method, "/api/v1/does-not-exist")
     assert response.status_code == 404
     assert response.json()["code"] == "not_found"
+    assert "allow" not in response.headers
+
+
+@pytest.mark.parametrize("method", ["POST", "PUT", "PATCH", "DELETE"])
+@pytest.mark.parametrize("path", ["/healthz", "/api/v1/does-not-exist"])
+def test_csrf_check_runs_before_routing(client: TestClient, method: str, path: str) -> None:
+    # docs/07 §1.13: an unsafe request failing the Origin or CSRF check gets 403 instead of
+    # the 405 (unsupported method) or 404 (no route) that routing would give.
+    response = client.request(method, path, headers={"Origin": "https://evil.example.invalid"})
+    assert response.status_code == 403
+    assert response.json()["code"] == "csrf_failed"
     assert "allow" not in response.headers
 
 
