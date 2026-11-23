@@ -98,6 +98,7 @@ def test_empty_required_variable_counts_as_missing(
         secrets.token_hex(31),  # 62 hex characters decode to 31 bytes
         "x" * 31,  # 31 bytes of text
     ],
+    ids=["hex-31-bytes", "text-31-bytes"],  # stable IDs; the random value never appears
 )
 def test_short_csrf_secret_is_rejected_without_leaking_it(
     env: dict[str, str], monkeypatch: pytest.MonkeyPatch, secret: str

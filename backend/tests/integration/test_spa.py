@@ -83,6 +83,39 @@ def test_unknown_api_path_stays_problem_json(spa_client: TestClient) -> None:
     assert response.headers["content-type"] == "application/problem+json"
 
 
+@pytest.mark.parametrize("path", ["/", "/login", "/app", "/app/customers", "/favicon.svg"])
+@pytest.mark.parametrize("method", ["POST", "PUT", "DELETE"])
+def test_unsupported_method_on_spa_page_is_405_with_allow_get(
+    spa_client: TestClient, method: str, path: str
+) -> None:
+    # The function name predates HEAD support; GET resources list GET and HEAD (docs/07 §1.14).
+    response = spa_client.request(method, path)
+    assert response.status_code == 405
+    assert response.headers["allow"] == "GET, HEAD"
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json()["code"] == "method_not_allowed"
+
+
+def test_unsupported_method_on_asset_is_405_with_allow_get_head(spa_client: TestClient) -> None:
+    response = spa_client.post("/assets/index-abc123.js")
+    assert response.status_code == 405
+    assert response.headers["allow"] == "GET, HEAD"
+    assert response.json()["code"] == "method_not_allowed"
+
+
+@pytest.mark.parametrize("path", ["/unknown", "/api/v1/nope", "/docs-like-path"])
+@pytest.mark.parametrize("method", ["POST", "PUT", "PATCH", "DELETE"])
+def test_unknown_path_is_404_not_405_for_other_methods(
+    spa_client: TestClient, method: str, path: str
+) -> None:
+    # No catch-all route: a path that matches no route stays 404 for every method.
+    response = spa_client.request(method, path)
+    assert response.status_code == 404
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json()["code"] == "not_found"
+    assert "allow" not in response.headers
+
+
 def test_health_endpoints_are_not_shadowed(spa_client: TestClient) -> None:
     assert spa_client.get("/healthz").json() == {"status": "ok"}
 

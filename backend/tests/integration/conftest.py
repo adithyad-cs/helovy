@@ -24,6 +24,17 @@ from app.modules.storage.client import create_s3_client, init_bucket
 ENV_TEST = REPO_ROOT / ".env.test"
 TEST_DATABASE = "/ps5_test"
 TEST_BUCKET = "ps5-documents-test"
+SPA_INDEX = "<!doctype html><html lang='en-IN'><title>test build</title></html>"
+
+
+def build_test_spa(root: Path) -> Path:
+    """A minimal stand-in for the Vite build (test fixture data); returns the static dir."""
+    static = root / "static"
+    (static / "assets").mkdir(parents=True)
+    (static / "index.html").write_text(SPA_INDEX)
+    (static / "assets" / "index-abc123.js").write_text("console.log('ok')")
+    (static / "favicon.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'/>")
+    return static
 
 
 def _load_env_test() -> None:

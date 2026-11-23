@@ -14,6 +14,9 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.routing import Match, Mount
+from starlette.staticfiles import StaticFiles
+from starlette.types import Scope
 
 from app.core.logging import request_id_var
 
@@ -30,7 +33,7 @@ class ProblemKind:
     detail: str
 
 
-# The 24 codes of docs/07 §1.12 with their HTTP status. Titles and details are generic.
+# The 25 codes of docs/07 §1.12 with their HTTP status. Titles and details are generic.
 CATALOGUE: dict[str, ProblemKind] = {
     "malformed_request": ProblemKind(400, "Malformed request", "The request could not be read."),
     "idempotency_key_missing": ProblemKind(
@@ -43,6 +46,9 @@ CATALOGUE: dict[str, ProblemKind] = {
     "csrf_failed": ProblemKind(403, "Request not trusted", "The CSRF token or Origin is invalid."),
     "forbidden_role": ProblemKind(403, "Not allowed", "Your role does not allow this action."),
     "not_found": ProblemKind(404, "Not found", "The requested resource was not found."),
+    "method_not_allowed": ProblemKind(
+        405, "Method not allowed", "The request method is not supported by this resource."
+    ),
     "business_already_exists": ProblemKind(
         409, "Business already exists", "This organization already has a business."
     ),
@@ -134,13 +140,12 @@ def problem_response(
     )
 
 
-# Framework HTTP errors mapped onto catalogue codes. The documents define no code for
-# 405 Method Not Allowed; it is answered as 404 not_found (recorded in PROGRESS.md).
+# Framework HTTP errors mapped onto catalogue codes.
 _HTTP_STATUS_CODES = {
     400: "malformed_request",
     401: "unauthenticated",
     404: "not_found",
-    405: "not_found",
+    405: "method_not_allowed",
     413: "payload_too_large",
     429: "rate_limited",
     503: "dependency_unavailable",
@@ -176,14 +181,58 @@ async def _app_error_handler(request: Request, exc: Exception) -> JSONResponse:
     )
 
 
+# Methods probed when building Allow: the RFC 9110 methods an application route can serve,
+# plus PATCH (RFC 5789). CONNECT and TRACE are never routed.
+PROBE_METHODS = ("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+
+
+def allowed_methods(request: Request) -> list[str]:
+    """Every method the requested path supports, across all routes (RFC 9110 §15.5.6).
+
+    Starlette reports only the methods of the first route that matches the path. A path can
+    be served by several routes (from M2, for example GET and PATCH on
+    ``/api/v1/businesses/{business_id}``), possibly inside included routers, and ``Allow``
+    must list all of their methods. Each method is therefore probed through the public
+    ``matches()`` interface of every top-level route: a method is allowed when some route
+    would fully match it. HEAD-aware routes match HEAD wherever they match GET (docs/07
+    §1.14). The answer depends on the routes only, never on whether a record exists.
+    """
+    scope = request.scope
+    # A matched mount rewrites root_path; app_root_path keeps the application's own.
+    root_path = scope.get("app_root_path", scope.get("root_path", ""))
+
+    def probe(method: str) -> Scope:
+        return {"type": "http", "method": method, "path": scope["path"], "root_path": root_path}
+
+    methods: set[str] = set()
+    for route in request.app.router.routes:
+        if isinstance(route, Mount):
+            # A mount matches any method; static files serve GET and HEAD only.
+            if isinstance(route.app, StaticFiles) and route.matches(probe("GET"))[0] is Match.FULL:
+                methods.update(("GET", "HEAD"))
+            continue
+        for method in PROBE_METHODS:
+            if route.matches(probe(method))[0] is Match.FULL:
+                methods.add(method)
+    return sorted(methods)
+
+
 async def _http_error_handler(request: Request, exc: Exception) -> JSONResponse:
     error = cast(StarletteHTTPException, exc)
     code = _HTTP_STATUS_CODES.get(error.status_code, "internal_error")
     if code == "internal_error":
         logger.error("unmapped HTTP status %s", error.status_code)
-    retry_after = (error.headers or {}).get("Retry-After")
-    headers = {"Retry-After": retry_after} if retry_after else None
-    return problem_response(code, instance=request.url.path, headers=headers)
+    framework_headers = error.headers or {}
+    headers: dict[str, str] = {}
+    if retry_after := framework_headers.get("Retry-After"):
+        headers["Retry-After"] = retry_after
+    if error.status_code == 405:
+        # RFC 9110 §15.5.6: a 405 response must carry Allow with the supported methods.
+        allow = allowed_methods(request) or [
+            method.strip() for method in framework_headers.get("Allow", "").split(",")
+        ]
+        headers["Allow"] = ", ".join(method for method in allow if method)
+    return problem_response(code, instance=request.url.path, headers=headers or None)
 
 
 async def _validation_error_handler(request: Request, exc: Exception) -> JSONResponse:

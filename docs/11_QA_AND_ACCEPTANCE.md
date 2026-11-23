@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| Document | Test specification · version 1.1 · 23 November 2026 |
+| Document | Test specification · version 1.2 · 23 November 2026 |
 | Separation | §3 = **mandatory demonstration checks** (P0-Lite, 25 November). §4 = **full-product acceptance tests** (P1 and P2, deferred) |
 | Fixtures | 09 §15 (F-01 to F-16); demonstration data in §5 |
 
@@ -63,7 +63,7 @@
 | IT-DOC-04 | E-20 preview | 200 `application/pdf`, starts with `%PDF-`. The rendered HTML (template-level assertion) contains "DRAFT — NOT ISSUED", the exact SPECIMEN text and no number. 0 lines → 422 `validation_failed` with field code `no_lines`. Finalised → 409 |
 | IT-DOC-05 | E-16 history list | Status filter; `q` matches a number prefix and a customer prefix (snapshot name for finalised, current name for drafts); pagination; drafts have `grand_total: null` |
 | IT-HLT-01 | Health | `/healthz` 200 without the database. `/readyz` 503 when the database or storage is down, or the template hash mismatches with `APP_ENV=demo`; 200 when all is well |
-| IT-GEN-01 | Conventions | Unknown field → 422 `validation_failed` with field code `unknown_field`; non-JSON body → 400 `malformed_request`; body over 256 KiB → 413; problem+json shape (`code`, `request_id`); `X-Request-ID` echoed; `Cache-Control: no-store` |
+| IT-GEN-01 | Conventions | Unknown field → 422 `validation_failed` with field code `unknown_field`; non-JSON body → 400 `malformed_request`; body over 256 KiB → 413; problem+json shape (`code`, `request_id`); `X-Request-ID` echoed; `Cache-Control: no-store`; an unsupported method on an existing route → 405 `method_not_allowed` with an `Allow` header listing every method of the path (never 404), while a path that matches no route stays 404 for every method (07 §1.13); HEAD on every GET resource → the GET status and header fields with no body, the endpoint running once, and `Allow` listing HEAD wherever it lists GET (07 §1.14) |
 
 ### 2.3 Financial calculation tests
 

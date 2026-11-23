@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| Document | Decision register · version 1.1 · 23 November 2026 |
+| Document | Decision register · version 1.2 · 23 November 2026 |
 | Use | Ask Heloavy the questions in §2 in priority order. Until a question is answered, its working assumption (§3) applies. §4 lists contradictions between the source materials; none was resolved silently |
 
 ## 1. How to use this register
@@ -118,6 +118,8 @@ Claude Code never makes such changes on its own (15, rules 3, 4 and 15).
 | 6 | 23 Nov 2026 | Retention wording: finalised documents are immutable while retained; retention duration and deletion follow the Heloavy-approved policy and the law | Independent review of version 1.0 | Team | Accepted |
 | 7 | 23 Nov 2026 | P0-Lite estimate labelled aggressive and conditional; checkpoint-based reductions made explicit; no completion guarantee | Independent review of version 1.0 | Team | Accepted |
 | 8 | 23 Nov 2026 | SeaweedFS retained for local storage, subject to the M0 verification gate (05 §14.1) | Independent review of version 1.0 | Team | Accepted |
+| 9 | 23 Nov 2026 | API contract (documentation 1.2): an unsupported method on an existing route returns 405 `method_not_allowed` (problem+json) with an `Allow` header listing every method of the path; a path that matches no route stays 404. Error catalogue 24 → 25 codes. Documents updated: 07 §1.10, §1.12, §1.13; 08 §21; 11 IT-GEN-01 | RFC 9110 §15.5.6. The documents were silent on 405, and the M0 build had answered it as 404; the developer's M0 review rejected that mapping | Developer | Accepted |
+| 10 | 23 Nov 2026 | API contract (documentation 1.2): every GET resource also answers HEAD with the GET status and header fields and no body; the endpoint runs once without side effects (for example no `document.pdf_downloaded` event for E-22); `Allow` lists HEAD wherever it lists GET. Unsupported methods stay 405 and unknown resources stay 404. Documents updated: 07 §1.13, §1.14, §2; 11 IT-GEN-01 | RFC 9110 §9.1 (general-purpose servers support GET and HEAD) and RFC 9110 §9.3.2 (HEAD is GET without content). The M0 build answered HEAD on its GET routes with 405; the developer's final M0 review required HEAD support | Developer | Accepted |
 
 ## 7. Research provenance and source packaging
 

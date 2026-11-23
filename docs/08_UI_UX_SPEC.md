@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| Document | Frontend experience · version 1.1 · 23 November 2026 |
+| Document | Frontend experience · version 1.2 · 23 November 2026 |
 | Scope | Every P0-Lite screen. Nothing outside 03 §2 may appear (03 §8) |
 | Stack | React 18, React Router, TanStack Query, React Hook Form + Zod, Tailwind, Radix (04 §4) |
 
@@ -401,7 +401,7 @@ Adds three things to §10.2, still within 5 s in total:
 | `payload_too_large` | This request is too large. Remove some lines or text. |
 | `integrity_check_failed` | This PDF failed its integrity check and was not downloaded. Reference: {request_id}. |
 | `dependency_unavailable` | The service is temporarily unavailable. Try again shortly. |
-| `internal_error`, `malformed_request`, `idempotency_key_missing`, `idempotency_key_mismatch`, `precondition_required`, `forbidden_role` | Something went wrong. Reference: {request_id}. |
+| `internal_error`, `malformed_request`, `method_not_allowed`, `idempotency_key_missing`, `idempotency_key_mismatch`, `precondition_required`, `forbidden_role` | Something went wrong. Reference: {request_id}. |
 
 ## 22. Not-found page and session expiry
 

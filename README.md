@@ -10,7 +10,7 @@ HIVE DOCS is a web application that lets small Indian service businesses create,
 | Item | Status |
 | --- | --- |
 | Research and architecture | Complete: Revision 2 baseline plus Revision 2.1 errata |
-| This documentation package | Version 1.1, approved as the working baseline for P0-Lite |
+| This documentation package | Version 1.2: the approved 1.1 baseline for P0-Lite plus the HTTP 405 and HEAD corrections (see Version history) |
 | Source code | None written yet |
 | Next milestone | Demonstration on Wednesday 25 November 2026, afternoon (exact time to be confirmed) |
 | Development capacity | One developer, assisted by Claude Code |
@@ -95,5 +95,6 @@ This package consolidates all four sources. Every place where they disagree is l
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 1.2 | 23 Nov 2026 | HTTP method corrections from the developer's review of M0 (RFC 9110). **405:** an unsupported method on an existing route returns 405 `method_not_allowed` (problem+json) with an `Allow` header listing every method of the path; a path that matches no route stays 404; error catalogue 24 → 25 codes. **HEAD:** every GET resource also answers HEAD with the GET status and header fields and no body, and `Allow` lists HEAD wherever it lists GET (07 §1.14). Documents changed: 07, 08 (405 only), 11 and 14 (decisions #9 for 405 and #10 for HEAD), now at version 1.2; all other documents are unchanged at version 1.1. Full list in `CONSISTENCY_AUDIT.md` §3 |
 | 1.1 | 23 Nov 2026 | Approved as the working baseline after independent review. Research provenance corrected (Perplexity, Grok and Gemini reviewed; Q-24, C-02 and RK-12 withdrawn); retention wording separated from immutability; P0-Lite schedule labelled aggressive and conditional, with explicit checkpoint reductions; SeaweedFS retained behind an M0 verification gate. Full list in `CONSISTENCY_AUDIT.md` §3 |
 | 1.0 | 23 Nov 2026 | First complete package |

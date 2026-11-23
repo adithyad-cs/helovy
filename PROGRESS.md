@@ -2,15 +2,53 @@
 
 ## Current status
 
-- Active milestone: **M0 complete, awaiting developer review**. M1 has not started.
-- Last updated: 2026-11-23 19:00 IST
+- Active milestone: **M0 complete; both rounds of M0 review corrections (405, HEAD) are applied and uncommitted, awaiting developer approval**. M1 has not started.
+- Last updated: 2026-11-23 19:50 IST
 - Checkpoints: CP1 pending (target Mon 22:30 IST: M0 and M1 done, sign-in works, UT-SEC and IT-AUTH green)
+- Git: commit `5402bf9` (M0) is preserved; the review corrections are uncommitted working-tree changes for developer review. Nothing committed, pushed or tagged since.
+
+## Final M0 documentation cleanup (23 Nov, 19:45 IST)
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| 14 §6 decision #10 (GET/HEAD contract, RFC 9110 §9.1 and §9.3.2) | Done | Row added after #9; no other change to 14 |
+| Consistent record of the 1.2 HEAD correction | Done | README version history (14: decisions #9 and #10); CONSISTENCY_AUDIT §2.1 HEAD row and §3.1 (reason and 14 row); this file. 07 §1.13, §1.14, §2 and 11 IT-GEN-01 already recorded it and needed no change |
+| Documentation consistency checks | Pass | Re-run on the final package (results in the final report) |
+| Git diff review, `git diff --check`, secret scan | Done | All 18 uncommitted files (16 modified, 2 new) |
+| `5402bf9` unmodified | Verified | HEAD is still `5402bf9`; no commit, push, tag, reset, amend or rebase |
+
+## Final M0 review: HEAD support (23 Nov, 19:28–19:40 IST)
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| 1. HEAD on every GET resource | Done | `/healthz`, `/readyz`, SPA pages, root files, static assets, development docs. Same status and headers as GET, no body (0 bytes on the wire with uvicorn), endpoint runs once, `Allow` lists `GET, HEAD` |
+| 2. Documentation 1.2 | Done | 07 §1.13 examples, new §1.14, §2 note; 11 IT-GEN-01; README 1.2 row; CONSISTENCY_AUDIT §1, §2.1, §3.1. 08: no change required. 14 §6: decision #10 added in the final documentation cleanup (see below) |
+| 3. Regression | Pass | Backend 180/180 (155 previous + 25 HEAD; gate 6/6); ruff, format, mypy `--strict` clean; FE-01, FE-02, FE-03 pass; documentation checks 15/15 |
+| 4. Docker | **BLOCKED** (unchanged) | Not retried, as instructed; the Dockerfile is unchanged |
+| 5. Git safety | Done | `5402bf9` untouched; no commit, push or tag |
+
+## M0 review corrections, first round (23 Nov, 19:05–19:25 IST)
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| 1. HTTP 405 | Done | 405 `method_not_allowed` with `Allow` (problem+json); documentation 1.2; tests below |
+| 2. `@hookform/resolvers` 5.2.2 | Accepted by the developer | Lockfile unchanged (`git diff` empty); `npm ci` clean |
+| 3. Clean `docker build -t hive-docs:local .` | **BLOCKED** (environment) | Exact reasons in "Verification items"; the Compose check with a clean image is therefore NOT RUN |
+| 4. Regression | Pass | Backend 155/155 (gate 6/6); ruff, format, mypy `--strict` clean; FE-01, FE-02, FE-03 pass |
+| 5. Git safety | Done | `5402bf9` untouched; no new commit, push or tag |
+
+## API contract changes
+
+| Date-time | Change | Before | After | Reason | Documents | Approved by |
+| --- | --- | --- | --- | --- | --- | --- |
+| 23 Nov 19:10 | Unsupported methods | The documents were silent; the M0 build answered a known path with an unsupported method as 404 `not_found` | **405 `method_not_allowed`** (RFC 9457 problem+json) with an **`Allow`** header listing every method of the path across all its routes (for example `Allow: GET` on `/healthz`; `Allow: GET, HEAD` on `/assets/...`). Decided from the route and method alone, before any session, tenant or record lookup, so the response is the same for every ID. A path that matches no route stays 404 for every method; missing and foreign records stay 404. Body limit (413) and, from M1, Origin/CSRF (403) still come first | RFC 9110 §15.5.6; developer's M0 review rejected the 404 mapping | Documentation 1.2: 07 §1.10, §1.12, §1.13; 08 §21; 11 IT-GEN-01; 14 §6 #9; README version history; CONSISTENCY_AUDIT §2.1, §3.1. Error catalogue 24 → 25 codes | Developer (review instruction) |
+| 23 Nov 19:30 | HEAD requests | FastAPI routes answered HEAD with 405 `Allow: GET` (only static assets and the docs routes answered HEAD) | **Every GET resource answers HEAD**: same status and header fields as GET (`Content-Type`, `Content-Length`, `ETag`, `Last-Modified`, `Cache-Control`, security headers, `X-Request-ID`), no body. Same middleware, authentication, scoping and lookups as GET; the endpoint runs once, with no side effects (for example no `document.pdf_downloaded` event for E-22 in M5); HEAD counts toward the GET rate limits; no CSRF token. `Allow` lists HEAD wherever it lists GET (`Allow: GET, HEAD` on `/healthz`; `GET, HEAD, PATCH` on a path with GET and PATCH routes). Unknown resources keep 404; unsupported methods keep 405 | RFC 9110 §9.1 (general-purpose servers support GET and HEAD) and §9.3.2; developer's final M0 review | Documentation 1.2: 07 §1.13 (examples), new §1.14, §2 note; 11 IT-GEN-01; README version history; CONSISTENCY_AUDIT §1, §2.1, §3.1. 08 unchanged (SPA sends no HEAD). 14 §6 decision #10 (added in the final documentation cleanup) | Developer (review instruction) |
 
 ## Milestones
 
 | Milestone | Status | Started | Finished | Tests (pass/total) | Notes |
 | --- | --- | --- | --- | --- | --- |
-| M0 | Done (pending developer review) | 23 Nov 17:12 | 23 Nov 19:00 | Backend 111/111 · FE-01..FE-03 3/3 | WeasyPrint 70.0 locked; SeaweedFS 4.54 verification gate passed (V-07, V-08, V-18, V-19). Two worker restarts during the session (Docker daemon restarted, no data lost) |
+| M0 | Done; review corrections applied (pending developer approval) | 23 Nov 17:12 | 23 Nov 19:00 (corrections 19:25, 19:40) | Backend 180/180 · FE-01..FE-03 3/3 | WeasyPrint 70.0 locked; SeaweedFS 4.54 verification gate passed (V-07, V-08, V-18, V-19). Reviews: 405 and HEAD contracts added (docs 1.2); clean build of the unmodified Dockerfile BLOCKED by the sandbox network. Two worker restarts during the session (Docker daemon restarted, no data lost) |
 | M1 | Not started | | | | |
 | M2 | Not started | | | | |
 | M3 | Not started | | | | |
@@ -58,15 +96,21 @@
 | 23 Nov 17:45 | `deploy/seaweedfs/s3.json` must be readable by the container's `seaweed` user (uid 1000): mode 0644, which is what the documented `cp` produces | 05 §6.2 | Claude Code |
 | 23 Nov 17:50 | `.env` targets host-run tools (`localhost`); `docker-compose.yml` overrides `DATABASE_URL`, `MIGRATION_DATABASE_URL` and `S3_ENDPOINT_URL` for the `app` container (hosts `db` and `storage`), built from the same `.env` passwords | 05 §7.2, §9, §10 | Claude Code (developer to confirm) |
 | 23 Nov 18:00 | Settings: a repository-root `.env` is read as a fallback for host-run tools; real environment variables always win; the image contains no `.env`. `CSRF_SECRET` length is measured on the decoded key when the value is hex (64 hex characters = 32 bytes), otherwise on its UTF-8 bytes; the same key bytes will key the HMAC in M1 | 05 §9, 12 §4.2 | Claude Code (developer to confirm) |
-| 23 Nov 18:00 | **Open question:** the documents define no code for 405 Method Not Allowed. Interim: answered as problem+json **404 `not_found`** (an existing catalogue pair) | 07 §1.5, §1.12 | **Needs developer confirmation** |
-| 23 Nov 18:05 | SPA serving: `/`, `/login`, `/app/...` → `index.html` 200; other non-API paths → `index.html` with HTTP **404** (the SPA renders its not-found page; `/docs` is 404 outside development, 12 §17); unknown `/api/...` → problem+json 404 | 04 §2, 08 §12.1, §22 | Claude Code |
+| 23 Nov 18:00 | ~~Open question: 405 answered as 404 `not_found`~~ **Superseded at 19:10** by the 405 correction below (rejected in the developer's M0 review) | 07 §1.5, §1.12 | Rejected by the developer |
+| 23 Nov 19:10 | **405 correction:** unsupported method on an existing route → 405 `method_not_allowed` with `Allow` (union of the methods of every route serving the path, computed in `app/core/errors.py`, because Starlette reports only the first matching route); problem+json; new catalogue code. See "API contract changes" | RFC 9110 §15.5.6; 07 §1.13 (docs 1.2) | Developer (review instruction) |
+| 23 Nov 19:10 | **SPA catch-all route removed.** A `GET /{path}` catch-all made every unknown path "exist", so `POST /unknown` or `DELETE /api/v1/nope` would have become 405 instead of 404. Now: explicit GET routes for `/`, `/login`, `/app`, `/app/{rest}` and the build's root files; a 404 handler serves the SPA's `index.html` with status 404 for a GET of any other non-API, non-asset path; everything else that matches no route → problem+json 404 | 04 §2, 07 §1.13, 08 §12.1, §22 | Claude Code (implements the developer's instruction to preserve 404) |
+| 23 Nov 19:10 | **Two tests replaced, none weakened or skipped:** `test_method_not_allowed_is_answered_as_not_found` asserted the rejected 405→404 mapping and is replaced by tests asserting 405 + `Allow`; `test_catalogue_has_the_24_documented_codes` becomes `..._25_...` for the documented 25-code catalogue. 45 test cases added, so 111 → 155 net (405 on health and SPA routes, assets `Allow: GET, HEAD`, union `Allow` across two routes, same 405 for every ID while a missing record stays 404, 404 for unknown paths on every method) | 15 §8 (tests), 11 IT-GEN-01 (docs 1.2) | Developer (review instruction) |
+| 23 Nov 19:30 | **HEAD implementation:** `app/core/routing.py` `HeadAwareRoute` (used by the app router and every module router) matches HEAD wherever it matches GET and runs the GET endpoint **once** with `request.method == "HEAD"`, so endpoints can skip side effects; the routes still declare only GET, so OpenAPI lists no duplicate HEAD operations. `RequestContextMiddleware` (outermost) drops every HEAD response body, including error responses, and keeps the GET status and headers; `Content-Length` stays the GET value. The SPA not-found page answers HEAD like GET | 07 §1.14; RFC 9110 §9.1, §9.3.2 | Developer (review instruction) |
+| 23 Nov 19:32 | **Latent 405 bug found and fixed:** FastAPI 0.165 keeps included routers as a single internal `_IncludedRouter` route, so the first-round `Allow` union missed every route inside included routers (`/healthz` fell back to Starlette's single-route header; module routers from M1 would have been wrong). `Allow` is now computed by probing each standard method through the public `matches()` interface of every top-level route, so it lists exactly what the router serves, nested routers included. Static mounts keep their explicit GET/HEAD rule | 07 §1.13 | Claude Code (fix within the approved 405 contract) |
+| 23 Nov 19:35 | **Tests for HEAD:** 25 cases added (`tests/integration/test_head.py`). The expected `Allow` value changed from `GET` to `GET, HEAD` (and `GET, PATCH` to `GET, HEAD, PATCH`) in 27 earlier cases of 4 functions, as the new requirement demands; test function names unchanged. The 2 parametrized CSRF-secret cases got fixed IDs (`hex-31-bytes`, `text-31-bytes`) because their IDs embedded a random value and changed every run; assertions unchanged. Nothing removed, skipped or weakened | 11 IT-GEN-01; 15 §8 | Developer (review instruction) |
+| 23 Nov 18:05 | SPA serving: `/`, `/login`, `/app/...` → `index.html` 200; other non-API paths → `index.html` with HTTP **404** (the SPA renders its not-found page; `/docs` is 404 outside development, 12 §17); unknown `/api/...` → problem+json 404. (Implementation changed at 19:10: no catch-all route; see above) | 04 §2, 08 §12.1, §22 | Claude Code |
 | 23 Nov 18:05 | `/readyz` reports `database` and `storage` in M0; the `templates` check is added with the template registry in M4 | 10 §3 M0.3, 07 E-02 | — (as documented) |
 | 23 Nov 18:05 | `Cache-Control: no-store` on every response except `/assets/*` (`public, max-age=31536000, immutable`) | 07 §1.10, 04 §2 | Claude Code |
 | 23 Nov 18:05 | Middleware: one outer ASGI middleware sets the request ID, security headers and Cache-Control, and turns unhandled exceptions into a 500 problem response (so it carries the headers too); then the 256 KiB body limit. The Origin/CSRF check slots in between in M1 | 04 §5 | Claude Code |
 | 23 Nov 18:20 | Node.js **22 LTS** (22.23.5, same as this host's toolchain) for the image's build stage | 05 §7.1, V-02 | Claude Code (developer to confirm) |
 | 23 Nov 18:20 | Frontend versions: react-router **7.18.6** (8.x requires React 19); TypeScript **5.9.3** (typescript-eslint needs `<6.1`; docs say 5.x); Radix as the umbrella `radix-ui` package (05 §3: "choose one in M0") | 05 §1, §3, V-04 | Claude Code |
 | 23 Nov 18:25 | The frontend was written by hand instead of trimming the `create-vite` template, which installs React 19, TypeScript 7, oxlint and `@types/node` (none approved) | 05 §3, V-03 | Claude Code |
-| 23 Nov 18:45 | **`@hookform/resolvers` pinned to 5.2.2 instead of 7.0.8.** Releases from 5.9 onwards declare about 20 optional peers including `ajv ^8`; next to ESLint's `ajv@6`, npm 10.9.9 writes a lockfile that its own `npm ci` rejects (EUSAGE), which broke the image build. 5.2.2 declares only `react-hook-form ^7.55.0`, ships the zod entry point, and `zodResolver` type-checks with zod 4.6.7. The alternative was `legacy-peer-deps=true` (disables peer checks for the whole project) | 05 §2 (`npm ci` in Docker), §3, V-04 | **Needs developer acknowledgement** |
+| 23 Nov 18:45 | **`@hookform/resolvers` pinned to 5.2.2 instead of 7.0.8.** Releases from 5.9 onwards declare about 20 optional peers including `ajv ^8`; next to ESLint's `ajv@6`, npm 10.9.9 writes a lockfile that its own `npm ci` rejects (EUSAGE), which broke the image build. 5.2.2 declares only `react-hook-form ^7.55.0`, ships the zod entry point, and `zodResolver` type-checks with zod 4.6.7. The alternative was `legacy-peer-deps=true` (disables peer checks for the whole project) | 05 §2 (`npm ci` in Docker), §3, V-04 | **Accepted by the developer for M0** (M0 review, 23 Nov). Lockfile kept unchanged; no upgrade |
 | 23 Nov 18:25 | ESLint enforces two 15 §8 constraints: no `localStorage`/`sessionStorage`, no `dangerouslySetInnerHTML` | 15 §8 | Claude Code |
 | 23 Nov 18:25 | Tailwind theme exposes only the 08 §4 colour tokens (default palette removed); breakpoints `md` 768 px and `lg` 1280 px | 08 §4, §6 | Claude Code |
 | 23 Nov 18:50 | Dockerfile: `uv sync --no-cache` (keeps uv's download cache out of the image: 696 MB → 476 MB); `XDG_CACHE_HOME=/tmp/.cache` set after the build steps (fontconfig needs a writable cache for the home-less runtime user); `uvicorn --no-proxy-headers` | 05 §7.1, 12 §2.2 | Claude Code |
@@ -95,7 +139,7 @@ All packages are on the approved list in docs/05 §3; no package outside it was 
 | react / react-dom | 18.3.1 / 18.3.1 | Frontend runtime (pinned, V-03) | docs/05 §3 |
 | react-router | 7.18.6 | Routing (React 18 compatible, V-04) | docs/05 §3 |
 | @tanstack/react-query | 5.108.3 | Server state | docs/05 §3 |
-| react-hook-form / @hookform/resolvers / zod | 7.92.0 / 5.2.2 / 4.6.7 | Forms (from M1) | docs/05 §3 (resolver version: see decisions) |
+| react-hook-form / @hookform/resolvers / zod | 7.92.0 / 5.2.2 / 4.6.7 | Forms (from M1). Resolver 5.2.2: the only release line whose peer set lets npm 10's lockfile pass `npm ci` next to ESLint's `ajv@6` | docs/05 §3; resolver 5.2.2 **accepted by the developer** (M0 review, 23 Nov) |
 | radix-ui | 1.8.1 | Accessible primitives (umbrella package) | docs/05 §3 |
 | typescript / vite / @vitejs/plugin-react | 5.9.3 / 8.3.8 / 6.3.0 | Frontend development | docs/05 §3 |
 | tailwindcss / @tailwindcss/vite | 4.3.5 / 4.3.5 | Styling | docs/05 §3 |
@@ -122,13 +166,20 @@ All packages are on the approved list in docs/05 §3; no package outside it was 
 | V-18 | **Pass (gate 2)** | `init-dev-storage` created `ps5-documents-dev` (`.env`) and `ps5-documents-test` (`.env.test`) with versioning Enabled; second runs say "already exists (left unchanged)", exit 0; also from inside the app container; refuses `APP_ENV=production` (exit 2, before contacting storage). Automated: `test_v18_*` (recreates the test bucket on every run) |
 | V-19 | **Pass (gate 3)** | With the app's credentials and `create_s3_client`: PUT/GET of 256 KiB byte-identical, SHA-256 equal, HeadBucket OK, for both identities. Each identity is refused (403) on the other's bucket. Automated: `test_v19_*`, `test_credentials_are_limited_to_their_own_bucket` |
 | V-10–V-15, V-17 | Not run | Not in M0 scope (S-02, M1, M5, M7, before P1) |
+| Clean image build (M0 review item 3) | **BLOCKED** (environment) | `docker build -t hive-docs:local .` on the unmodified, committed Dockerfile (identical to `5402bf9`) failed in 9 s with exit code 1: in the build's `RUN` containers `apt-get update` reports `Could not resolve 'deb.debian.org'` (no DNS or direct egress for containers in this sandbox; `npm ci` was cancelled with it). Diagnostic with CLI flags only (`--network host` plus proxy build arguments, separate tag; no Dockerfile change, no TLS bypass): apt's plain-HTTP Debian sources get `405 Method Not Allowed` from the sandbox proxy, which tunnels HTTPS only, and HTTPS downloads would require trusting the proxy's interception CA inside the build. Both causes are environmental. `hive-docs:local` was not changed (still image `7d9bafcb…`, built earlier through the sandbox-derived Dockerfile from commit `5402bf9` code). **Not run, because the clean image does not exist:** Compose with that image, `/healthz`, `/readyz`, SPA load, storage |
 
 ## Known issues
 
 | Severity (S1–S4) | Description | Status |
 | --- | --- | --- |
 | S3 | SeaweedFS's internal ports (master 9333, volume 8080, filer 8888/18888, including an unauthenticated filer IAM gRPC service) are reachable inside the compose network. They are not published to the host; only the app and database containers share the network. Local development only (the cloud uses Spaces). Possible mitigation: JWT keys in a SeaweedFS `security.toml` | Open (accepted for local) |
-| S4 | The image was built in this sandbox through a derived Dockerfile that adds proxy/CA plumbing to 3 `RUN` lines (bind mounts only; verified no residue in the image). **The committed `Dockerfile` still needs one build on the developer machine** | Open (developer action) |
+| S3 | **Clean build of the committed Dockerfile is BLOCKED in this sandbox** (no DNS or egress for build containers; HTTPS-only intercepting proxy). It needs one run on a machine with normal network access: `docker build -t hive-docs:local .`, then `docker compose up -d` and checks of `/healthz`, `/readyz`, the SPA and storage | Open (developer action) |
+| S4 | The `hive-docs:local` image in this sandbox (and the running `app` container) is the earlier build from the sandbox-derived Dockerfile at commit `5402bf9`; it contains **neither** the 405 nor the HEAD correction. The corrected code was verified with the test suite and with a host uvicorn over real HTTP (raw sockets: 0 body bytes for HEAD), not in a container | Open (resolved by the clean build) |
+| — | ~~`HEAD` on GET routes returned 405~~: resolved at 19:30, every GET resource answers HEAD (07 §1.14) | Closed |
+| — | ~~`docs/14` §6 had no decision entry for the HEAD rule~~: resolved in the final documentation cleanup, decision #10 | Closed |
+| S4 | M4 and M5 (E-20 preview, E-22 download): HEAD must run the same checks as GET without recording `document.pdf_downloaded`; header fields known only after generating the content may be omitted (07 §1.14) | Open (M4/M5 note) |
+| S4 | From M1, the Origin/CSRF middleware runs before routing (07 §1.13), so an unsafe request without a valid session token gets 403 before any 405. M1 must update the 405 tests that use POST, PATCH or DELETE to send a valid session, CSRF token and Origin | Open (M1 note) |
+| S4 | Pre-existing in the 1.1 documents, not changed by this revision: README, 00, 01 and PROJECT_SUMMARY still say no source code exists; 08 §15.3 paraphrases the SPECIMEN label in dialog copy (recorded in CONSISTENCY_AUDIT §2.1) | Open (documentation; not in scope) |
 | S4 | Starlette deprecates `httpx` for `TestClient` in favour of `httpx2` (one warning per test run). `httpx` is the approved package (05 §2) | Open; no change without approval |
 | S4 | In development, the FastAPI docs UI cannot load its CDN assets because of the CSP (12 §4.3); `/openapi.json` works. The docs UI is off in demo and production | Open (by design) |
 | S4 | Access log labels FastAPI's dev-only `/docs` routes as `unmatched` | Open (cosmetic) |
@@ -143,7 +194,7 @@ All packages are on the approved list in docs/05 §3; no package outside it was 
 
 ## Next steps
 
-- Developer: review the M0 report and this file; confirm the two flagged decisions (405 → 404; `@hookform/resolvers` 5.2.2).
-- Developer: run `docker build -t hive-docs:local .` and `docker compose up -d` once on the presenter laptop (no sandbox plumbing there).
-- Developer: authorise a push of branch `claude/busy-bell-14l7rh` if wanted (this cloud container is ephemeral; the M0 commit is local only).
+- Developer: review the uncommitted M0 corrections (405 and HEAD: code, tests, documentation 1.2) and commit them if approved; `5402bf9` is unchanged.
+- Developer: run `docker build -t hive-docs:local .` and `docker compose up -d` once on a machine with normal network access; check `/healthz`, `/readyz`, the SPA and storage.
+- Developer: authorise a push of branch `claude/busy-bell-14l7rh` if wanted (this cloud container is ephemeral; nothing is pushed).
 - M1 (database, authentication, app shell) when authorised: migration `0001_identity`, Argon2id, sessions, CSRF, E-03 to E-05, `create-demo-account`, login page, shell.

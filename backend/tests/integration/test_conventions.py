@@ -1,8 +1,9 @@
 """IT-GEN-01 (partial, M0) and the security headers of docs/12 §4.3.
 
 Covered now: problem+json shape, X-Request-ID echo, Cache-Control: no-store, body over
-256 KiB → 413, security headers, unhandled errors → 500 without internals, docs UI only
-in development. The unknown-field and non-JSON-body checks need body endpoints (M1).
+256 KiB → 413, unsupported method → 405 with Allow (docs/07 §1.13), security headers,
+unhandled errors → 500 without internals, docs UI only in development. The unknown-field
+and non-JSON-body checks need body endpoints (M1).
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
-from app.core.errors import PROBLEM_TYPE_BASE
+from app.core.errors import PROBLEM_TYPE_BASE, AppError
 from app.core.middleware import MAX_BODY_BYTES, SECURITY_HEADERS
 from tests.integration.conftest import make_client
 
@@ -43,11 +44,78 @@ def test_unknown_api_path_is_a_problem_json_404(client: TestClient) -> None:
     assert body["request_id"] == response.headers["x-request-id"]
 
 
-def test_method_not_allowed_is_answered_as_not_found(client: TestClient) -> None:
-    # The documents define no 405 code; see PROGRESS.md decisions.
-    response = client.post("/healthz")
+@pytest.mark.parametrize("method", ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+@pytest.mark.parametrize("path", ["/healthz", "/readyz"])
+def test_unsupported_method_on_existing_route_is_405_with_allow(
+    client: TestClient, method: str, path: str
+) -> None:
+    # docs/07 §1.13; RFC 9110 §15.5.6. Never answered as 404. GET resources also list
+    # HEAD (docs/07 §1.14).
+    response = client.request(method, path)
+    assert response.status_code == 405
+    assert response.headers["allow"] == "GET, HEAD"
+    assert response.headers["content-type"] == "application/problem+json"
+    _assert_problem(response.json(), "method_not_allowed", 405, path)
+    assert response.json()["request_id"] == response.headers["x-request-id"]
+    assert response.headers["cache-control"] == "no-store"
+    for name, value in SECURITY_HEADERS:
+        assert response.headers[name] == value
+
+
+def test_allow_lists_every_method_of_a_path_served_by_several_routes(
+    settings: Settings, no_spa: Path
+) -> None:
+    # Like E-07 (GET) and E-08 (PATCH) from M2: one path, two routes. Starlette alone would
+    # report only the first route's methods.
+    def read_item(item_id: str) -> dict[str, str]:
+        return {"id": item_id}
+
+    def update_item(item_id: str) -> dict[str, str]:
+        return {"id": item_id}
+
+    for client in make_client(settings, no_spa):
+        app = client.app
+        app.add_api_route("/api/v1/test-multi/{item_id}", read_item, methods=["GET"])  # type: ignore[attr-defined]
+        app.add_api_route("/api/v1/test-multi/{item_id}", update_item, methods=["PATCH"])  # type: ignore[attr-defined]
+        assert client.get("/api/v1/test-multi/a1").status_code == 200
+        response = client.delete("/api/v1/test-multi/a1")
+        assert response.status_code == 405
+        assert response.headers["allow"] == "GET, HEAD, PATCH"
+        assert response.json()["code"] == "method_not_allowed"
+
+
+def test_405_depends_on_the_route_only_and_404_is_preserved(
+    settings: Settings, no_spa: Path
+) -> None:
+    # A supported method on a missing (or another organization's) record stays 404; an
+    # unsupported method gets the same 405 for every ID, so it reveals nothing about records.
+    def get_record(record_id: str) -> dict[str, str]:
+        raise AppError("not_found")
+
+    for client in make_client(settings, no_spa):
+        client.app.add_api_route("/api/v1/test-records/{record_id}", get_record, methods=["GET"])  # type: ignore[attr-defined]
+        missing = client.get("/api/v1/test-records/does-not-exist")
+        assert missing.status_code == 404
+        assert missing.json()["code"] == "not_found"
+        assert "allow" not in missing.headers
+
+        first = client.put("/api/v1/test-records/does-not-exist")
+        second = client.put("/api/v1/test-records/4e6a8c0d-2f3b-4c5e-9a7d-9f1b3d5f7a9c")
+        assert first.status_code == second.status_code == 405
+        assert first.headers["allow"] == second.headers["allow"] == "GET, HEAD"
+
+        def comparable(body: dict[str, object]) -> dict[str, object]:
+            return {k: v for k, v in body.items() if k not in ("instance", "request_id")}
+
+        assert comparable(first.json()) == comparable(second.json())
+
+
+@pytest.mark.parametrize("method", ["GET", "POST", "PUT", "PATCH", "DELETE"])
+def test_path_matching_no_route_is_404_for_every_method(client: TestClient, method: str) -> None:
+    response = client.request(method, "/api/v1/does-not-exist")
     assert response.status_code == 404
     assert response.json()["code"] == "not_found"
+    assert "allow" not in response.headers
 
 
 @pytest.mark.parametrize("request_id", ["abcDEF_123-xyz", "a" * 64, "12345678"])

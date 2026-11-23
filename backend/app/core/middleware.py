@@ -3,7 +3,8 @@
 ``RequestContextMiddleware`` is the outermost application middleware. It assigns the
 request ID, adds the security headers of docs/12 §4.3 and ``Cache-Control`` to every
 response, turns unhandled exceptions into a 500 problem response (so even that response
-carries the headers), and writes one JSON access line per request.
+carries the headers), drops the body of every HEAD response (docs/07 §1.14; RFC 9110
+§9.3.2) while keeping the GET status and headers, and writes one JSON access line per request.
 
 The Origin and CSRF check for unsafe methods sits between the body limit and routing;
 it arrives with sessions in M1.
@@ -75,10 +76,15 @@ class RequestContextMiddleware:
         request_id = incoming if _REQUEST_ID.match(incoming) else new_request_id()
         token = request_id_var.set(request_id)
         path: str = scope["path"]
+        is_head = scope["method"] == "HEAD"
         started = time.perf_counter()
         response: dict[str, int | bool] = {"status": 500, "started": False}
 
         async def send_with_headers(message: Message) -> None:
+            if is_head and message["type"] == "http.response.body":
+                # A HEAD response carries no content; Content-Length and the other headers
+                # stay as the GET response would send them (RFC 9110 §9.3.2).
+                message = {**message, "body": b""}
             if message["type"] == "http.response.start":
                 status = int(message["status"])
                 response["status"] = status

@@ -11,9 +11,11 @@ from app.core.errors import CATALOGUE, AppError, json_pointer
 from app.core.logging import JsonFormatter, request_id_var
 
 
-def test_catalogue_has_the_24_documented_codes() -> None:
-    assert len(CATALOGUE) == 24
+def test_catalogue_has_the_25_documented_codes() -> None:
+    # docs/07 §1.12 (documentation 1.2): 24 codes plus method_not_allowed.
+    assert len(CATALOGUE) == 25
     assert CATALOGUE["not_found"].status == 404
+    assert CATALOGUE["method_not_allowed"].status == 405
     assert CATALOGUE["payload_too_large"].status == 413
     assert CATALOGUE["validation_failed"].status == 422
     assert CATALOGUE["dependency_unavailable"].status == 503

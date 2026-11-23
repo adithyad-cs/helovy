@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| Document | HTTP API · version 1.1 · 23 November 2026 |
+| Document | HTTP API · version 1.2 · 23 November 2026 |
 | Endpoints | **23** (E-01 to E-23). There are no other P0-Lite endpoints |
 | Normative companions | 06 (schema), 09 (calculation, validation, finalisation) |
 
@@ -117,6 +117,7 @@ A 429 response includes `Retry-After` in seconds.
 - `X-Request-ID` echoes a client value that matches `^[A-Za-z0-9_-]{8,64}$`, or a generated one.
 - `Cache-Control: no-store` on every API response, including PDFs.
 - The security headers in 12 §4.
+- `Allow` on every 405 response, listing the methods the path supports (§1.13).
 
 ### 1.11 Permissions
 
@@ -133,6 +134,7 @@ P0-Lite has one role, `owner`. Every tenant endpoint checks that the session's m
 | 403 | `csrf_failed` | Missing or bad CSRF token or Origin | Refetch `me`, then ask the user to retry |
 | 403 | `forbidden_role` | Role not allowed (P1) | Not reachable in P0-Lite |
 | 404 | `not_found` | Missing, or belongs to another organization | Not-found state |
+| 405 | `method_not_allowed` | The path matches a route that does not support the method (§1.13); the response carries `Allow` | Bug; generic error |
 | 409 | `business_already_exists` | E-06 when a business exists | Redirect to the profile |
 | 409 | `document_not_draft` | Edit, delete, preview or finalise on a finalised document | Reload the document (read-only) |
 | 409 | `document_not_finalized` | Download or retry on a draft | Reload |
@@ -150,6 +152,23 @@ P0-Lite has one role, `owner`. Every tenant endpoint checks that the session's m
 | 500 | `internal_error` | Unexpected error | Generic error with request ID |
 | 500 | `integrity_check_failed` | The stored PDF does not match its SHA-256 | Error with request ID; the file is not served |
 | 503 | `dependency_unavailable` | Database, storage or renderer unavailable, or a lock timeout outside idempotency | "Service temporarily unavailable" with Retry |
+
+### 1.13 Unsupported methods
+
+- A request whose path matches an existing route, but whose method that route does not support, gets **405 `method_not_allowed`** (RFC 9110 §15.5.6), in the problem+json format of §1.5.
+- The response carries an `Allow` header listing every method the path supports, across all of its routes, with HEAD wherever GET is listed (§1.14): for example `Allow: GET, HEAD` on `/healthz`, and `Allow: GET, HEAD, PATCH` on `/api/v1/businesses/{business_id}` once E-07 and E-08 exist.
+- The 405 decision depends only on the route and the method. It is made before any session, tenant or record lookup in the endpoint, so every ID gives the same response and nothing about records is revealed.
+- A path that matches no route returns 404 `not_found` for every method. Missing records, records of another organization and malformed IDs on supported methods still return 404 (§1.4, §4; 04 §8).
+- Middleware checks run before routing (04 §5): a request over the body size limit gets 413, and an unsafe request failing the Origin or CSRF check gets 403 (§1.3), instead of 405.
+
+### 1.14 HEAD requests
+
+- Every GET resource also answers HEAD (RFC 9110 §9.1, §9.3.2): the GET endpoints in §2, the SPA pages and the static files. HEAD has no separate entry in §2.
+- A HEAD response has the same status and the same header fields as the GET response would have, including `Content-Type`, `Content-Length`, `ETag`, `Last-Modified`, `Cache-Control`, the security headers and `X-Request-ID` (§1.10), but no body. A header field whose value exists only while generating the content may be omitted (RFC 9110 §9.3.2).
+- HEAD passes through the same middleware, authentication, tenant scoping and lookups as GET, so it gets the same status: for example 404 for a missing or foreign record, or 503 from `/readyz` when a dependency is down. An error response to HEAD carries the problem+json headers without the body.
+- The endpoint runs once, and HEAD has no side effects: nothing that only follows from sending the content is recorded (for example, no `document.pdf_downloaded` audit event for E-22; 06 §9). HEAD counts toward the same rate limits as GET (§1.9).
+- HEAD is a safe method: like GET, it needs no CSRF token (§1.3).
+- `Allow` lists HEAD wherever it lists GET (§1.13). A resource that does not support GET does not support HEAD.
 
 ## 2. Endpoint index
 
@@ -178,6 +197,8 @@ P0-Lite has one role, `owner`. Every tenant endpoint checks that the session's m
 | E-21 | POST | `/api/v1/documents/{document_id}/finalize` | Yes | Yes | M5 |
 | E-22 | GET | `/api/v1/documents/{document_id}/pdf` | Yes | No | M5 |
 | E-23 | POST | `/api/v1/documents/{document_id}/pdf/render` | Yes | Yes | M5 |
+
+Every GET endpoint in this index also answers HEAD (§1.14).
 
 ## 3. Resource representations
 

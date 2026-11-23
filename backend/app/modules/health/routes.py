@@ -1,7 +1,8 @@
 """E-01 ``GET /healthz`` and E-02 ``GET /readyz`` (docs/07 §4). No ``/api/v1`` prefix.
 
 Readiness checks the database and storage. The template-hash check is added with the
-template registry in M4 (docs/10 §3).
+template registry in M4 (docs/10 §3). Both endpoints also answer HEAD (docs/07 §1.14):
+the same checks run once and give the same status and headers, without a body.
 """
 
 from __future__ import annotations
@@ -12,9 +13,10 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app.core.db import database_is_ready
+from app.core.routing import HeadAwareRoute
 from app.modules.storage.client import bucket_is_ready
 
-router = APIRouter(tags=["health"])
+router = APIRouter(tags=["health"], route_class=HeadAwareRoute)
 
 
 @router.get("/healthz")

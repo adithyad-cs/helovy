@@ -1,16 +1,17 @@
 # Cross-Document Consistency Audit
 
-**Package:** HIVE DOCS (PS5) documentation 1.1 · **Date:** 23 November 2026 · **Re-run** after the version 1.1 corrections
+**Package:** HIVE DOCS (PS5) documentation 1.2 · **Date:** 23 November 2026 · **Re-run** after the version 1.2 corrections (HTTP 405 and HEAD)
 **Checked against:**
 
 - the official PS5 requirements (as restated in the master documentation prompt);
 - Revision 2 with the Revision 2.1 errata;
 - the accepted recommendations of the independently reviewed Perplexity, Grok and Gemini research reports, as consolidated in those decisions;
-- the constraints of the master documentation prompt.
+- the constraints of the master documentation prompt;
+- for version 1.2: the developer's reviews of milestone M0 (23 November 2026) and RFC 9110 §9.1, §9.3.2 and §15.5.6.
 
 ## 1. Result
 
-The package is internally consistent: **no contradiction remains between the 16 documents.**
+The package is internally consistent: **no contradiction remains between the 16 documents.** Version 1.2 adds two API contract rules from RFC 9110, HTTP 405 with an `Allow` header (07 §1.13) and HEAD for every GET resource (07 §1.14), and introduces no new contradiction.
 
 | Upstream contradiction | Status |
 | --- | --- |
@@ -20,7 +21,30 @@ The package is internally consistent: **no contradiction remains between the 16 
 
 **Research provenance:** the Perplexity, Grok and Gemini research reports were independently reviewed, their relevant recommendations were audited, and the accepted decisions are consolidated in this package. The original full reports are not bundled in the ZIP. This audit therefore checks consistency against the accepted decisions, not against the original reports.
 
-## 2. Automated checks (re-run on version 1.1; all passing)
+## 2. Automated checks
+
+### 2.1 Version 1.2 re-run (this revision; all passing)
+
+The version 1.1 review script was not available, so these checks were re-run on version 1.2 with a new review script (again a review tool, not part of the package). Only the checks listed here were re-run.
+
+| Check | Result |
+| --- | --- |
+| All 16 documents in `docs/`, plus README.md, CLAUDE.md, PROJECT_SUMMARY.md and this file | Present |
+| Files that differ from the version 1.1 package | Exactly README.md, this file, and docs 07, 08, 11 and 14 |
+| Cross-references of the form "NN §X.Y", "`docs/NN_….md` §X", "FILE.md §X" and "§X" within one document | 452 references (RFC citations excluded); every referenced section exists |
+| Error codes: the 07 §1.12 catalogue has 25 codes, including 405 `method_not_allowed`; every code has UI copy in 08 §21, and 08 §21 names no other code | Pass |
+| Every "status `code`" pair cited in any document matches the catalogue, or is 422 with a field code listed in 07 §1.5 | Pass (114 pairs) |
+| Markdown tables have consistent column counts; code fences are balanced | Pass |
+| The SPECIMEN statement appears only in its exact form | Pass |
+| Version headers: 07, 08, 11 and 14 read 1.2; the other 12 documents read 1.1 | Pass |
+| Withdrawn identifiers Q-24, C-02 and RK-12: occurrence counts unchanged from version 1.1 | Pass |
+| HEAD contract: 07 §1.14 exists and cites RFC 9110 §9.1 and §9.3.2; the 07 §1.13 `Allow` examples list HEAD with GET; 11 IT-GEN-01 covers HEAD; 14 §6 decision #10 records it with RFC 9110 §9.3.2 | Pass |
+
+Observation, unchanged since version 1.1 and outside this revision: the finalise dialog copy in 08 §15.3 paraphrases the PDF label ("The PDF is marked SPECIMEN — not a tax invoice."). It describes the PDF; the exact statement still appears on every PDF (09 §13). No change was made.
+
+### 2.2 Version 1.1 checks (as recorded by the version 1.1 review run)
+
+The error-code row below records the 24 codes of version 1.1; §2.1 supersedes it (25 codes in version 1.2).
 
 | Check | Result |
 | --- | --- |
@@ -43,7 +67,27 @@ The package is internally consistent: **no contradiction remains between the 16 
 
 The script that ran these checks is a review tool. It is not part of the package, which contains no source code.
 
-## 3. Version 1.1 changes (exact list)
+## 3. Version changes (exact lists)
+
+### 3.1 Version 1.2 changes (HTTP 405 and HEAD corrections)
+
+**Reasons.**
+
+- **405:** RFC 9110 §15.5.6 requires a 405 response, with an `Allow` header, when a resource does not support the request method. The documents were silent on 405, and the M0 build answered it as 404 `not_found`; the developer's M0 review rejected that mapping. Approved by the developer and recorded as decision #9 in 14 §6.
+- **HEAD:** RFC 9110 §9.1 requires general-purpose servers to support HEAD wherever they support GET, and RFC 9110 §9.3.2 defines HEAD as GET without content. The M0 build answered HEAD with 405 on its GET routes; the developer's final M0 review required HEAD support. Approved by the developer and recorded as decision #10 in 14 §6.
+
+| File | Changes |
+| --- | --- |
+| docs/07_API_SPEC.md | Version 1.2. §1.10: `Allow` on every 405 response. §1.12: new row 405 `method_not_allowed` (catalogue 24 → 25 codes). **New §1.13** "Unsupported methods": 405 `method_not_allowed` as problem+json, with `Allow` listing every method of the path across all its routes, HEAD included wherever GET is; decided from the route and method alone, before any session, tenant or record lookup; a path that matches no route stays 404 for every method, and missing or foreign records stay 404; the body size limit (413) and the Origin and CSRF check (403) run first. **New §1.14** "HEAD requests": every GET resource also answers HEAD with the GET status and header fields and no body; same middleware, authentication, scoping and lookups as GET; the endpoint runs once with no side effects (no `document.pdf_downloaded` event for E-22) and HEAD counts toward the GET rate limits; no CSRF token; `Allow` lists HEAD wherever it lists GET. §2: one-line note that every GET endpoint also answers HEAD |
+| docs/08_UI_UX_SPEC.md | Version 1.2. §21: `method_not_allowed` added to the generic "Something went wrong. Reference: {request_id}." row. No change for HEAD: the SPA sends no HEAD requests and no copy is affected |
+| docs/11_QA_AND_ACCEPTANCE.md | Version 1.2. IT-GEN-01: an unsupported method on an existing route gives 405 `method_not_allowed` with `Allow` (never 404); a path that matches no route stays 404 for every method; HEAD on every GET resource gives the GET status and header fields without a body, the endpoint runs once, and `Allow` lists HEAD wherever it lists GET |
+| docs/14_OPEN_QUESTIONS_AND_ASSUMPTIONS.md | Version 1.2. §6: new decisions #9 (the 405 contract) and #10 (the GET/HEAD contract, RFC 9110 §9.1 and RFC 9110 §9.3.2) |
+| README.md | Status row: documentation version 1.2. Version history: new 1.2 row covering the 405 and HEAD corrections |
+| CONSISTENCY_AUDIT.md | Header, §1 and new §2.1 and §3.1 for version 1.2; the version 1.1 content is kept as recorded (§2.2, §3.2) |
+
+All other documents are unchanged and keep their version 1.1 headers. No endpoint, table, architecture decision, technology or feature was added; the contract changes are the 405 and HEAD rules above.
+
+### 3.2 Version 1.1 changes (exact list)
 
 All 16 documents moved from version 1.0 to 1.1 in their headers. In addition:
 
