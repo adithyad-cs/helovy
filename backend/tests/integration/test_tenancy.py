@@ -68,6 +68,7 @@ def _requests(ids: dict[str, str]) -> list[tuple[str, str, dict[str, object]]]:
         ("POST", f"/api/v1/businesses/{business}/documents", {"json": {"customer_id": customer}}),
         ("GET", f"/api/v1/documents/{document}", {}),
         ("PATCH", f"/api/v1/documents/{document}", {"json": {"notes": "x"}, "headers": {"If-Match": '"1"'}}),
+        ("GET", f"/api/v1/documents/{document}/preview.pdf", {}),
         ("DELETE", f"/api/v1/documents/{document}", {"headers": {"If-Match": '"1"'}}),
     ]  # fmt: skip
 

@@ -9,8 +9,8 @@ import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { InvoicePage } from '../features/invoices/InvoicePage'
 import { InvoicesIndexPage } from '../features/invoices/InvoicesIndexPage'
 import { NewInvoicePage } from '../features/invoices/NewInvoicePage'
+import { TemplatesPage } from '../features/templates/TemplatesPage'
 import { AppShell } from './AppShell'
-import { NotBuiltYetPage } from './NotBuiltYetPage'
 import { NotFoundPage } from './NotFoundPage'
 import { RequireAuth } from './RequireAuth'
 import { RequireBusiness } from './RequireBusiness'
@@ -40,7 +40,7 @@ const router = createBrowserRouter([
               { path: 'invoices/:documentId', element: <InvoicePage /> },
             ],
           },
-          { path: 'templates', element: <NotBuiltYetPage title="Templates" /> },
+          { path: 'templates', element: <TemplatesPage /> },
           { path: '*', element: <NotFoundPage inShell /> },
         ],
       },

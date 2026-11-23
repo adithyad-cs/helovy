@@ -1,0 +1,101 @@
+{#- classic@1 — A4 invoice (docs/08 §20). Autoescaped; every value is plain text. -#}
+{% macro address_lines(address) -%}
+  {% if address.line1 %}<p>{{ address.line1 }}</p>{% endif %}
+  {% if address.line2 %}<p>{{ address.line2 }}</p>{% endif %}
+  {% if address.city or address.postal_code %}<p>{{ address.city or "" }}{% if address.city and address.postal_code %} {% endif %}{{ address.postal_code or "" }}</p>{% endif %}
+  {% if address.state_name %}<p>{{ address.state_name }}, India</p>{% endif %}
+{%- endmacro %}
+<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}{% if doc.number %} {{ doc.number }}{% endif %}</title>
+<style>
+{% include "styles.css" %}
+@page { @bottom-left { content: "{{ specimen_text }}"; } }
+</style>
+</head>
+<body>
+{% if preview %}
+<div class="watermark">{{ watermark_text }}</div>
+{% endif %}
+
+<header class="masthead">
+  <section class="seller">
+    <h1 class="seller-name">{{ seller.legal_name }}</h1>
+    {% if seller.trade_name %}<p class="muted">{{ seller.trade_name }}</p>{% endif %}
+    <address>
+      {{ address_lines(seller.address) }}
+    </address>
+    {% if seller.phone %}<p>{{ seller.phone }}</p>{% endif %}
+    {% if seller.email %}<p>{{ seller.email }}</p>{% endif %}
+    {% if seller.gstin %}<p>GSTIN: {{ seller.gstin }}</p>{% endif %}
+  </section>
+  <section class="meta">
+    <p class="title">{{ title }}</p>
+    <table class="meta-table">
+      <tr><th>Invoice no.</th><td>{{ doc.number if doc.number else preview_number }}</td></tr>
+      <tr><th>Invoice date</th><td>{{ doc.issue_date | long_date if doc.issue_date else preview_date }}</td></tr>
+      {% if doc.due_date %}<tr><th>Due date</th><td>{{ doc.due_date | long_date }}</td></tr>{% endif %}
+      {% if doc.reference %}<tr><th>Reference</th><td>{{ doc.reference }}</td></tr>{% endif %}
+    </table>
+  </section>
+</header>
+
+<div class="rule"></div>
+
+<section class="bill-to">
+  <p class="label">Bill to</p>
+  <p class="buyer-name">{{ buyer.display_name }}</p>
+  {% if buyer.contact_name %}<p>{{ buyer.contact_name }}</p>{% endif %}
+  <address>
+    {{ address_lines(buyer.address) }}
+  </address>
+  {% if buyer.email %}<p>{{ buyer.email }}</p>{% endif %}
+  {% if buyer.phone %}<p>{{ buyer.phone }}</p>{% endif %}
+  {% if buyer.gstin %}<p>GSTIN: {{ buyer.gstin }}</p>{% endif %}
+</section>
+
+<table class="lines">
+  <thead>
+    <tr>
+      <th class="pos">#</th>
+      <th>Description</th>
+      <th class="num">Qty</th>
+      <th class="unit">Unit</th>
+      <th class="num">Unit price</th>
+      <th class="num">Discount</th>
+      <th class="num">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in lines %}
+    <tr>
+      <td class="pos">{{ line.position }}</td>
+      <td class="desc">{{ line.description }}</td>
+      <td class="num">{{ line.quantity | quantity }}</td>
+      <td class="unit">{{ line.unit or "" }}</td>
+      <td class="num">{{ line.unit_price | money }}</td>
+      <td class="num">{{ line | discount_column }}</td>
+      <td class="num">{{ line.line_total | money }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals-block">
+  <table class="totals">
+    <tr><th>Subtotal</th><td>{{ totals.gross_total | money }}</td></tr>
+    <tr><th>Discount</th><td>{{ totals.discount_total | deduction }}</td></tr>
+    <tr class="grand"><th>Total</th><td>{{ totals.grand_total | money }}</td></tr>
+  </table>
+</div>
+
+{% if doc.notes %}
+<section class="note"><h2>Notes</h2><p>{{ doc.notes }}</p></section>
+{% endif %}
+{% if doc.terms %}
+<section class="note"><h2>Terms</h2><p>{{ doc.terms }}</p></section>
+{% endif %}
+</body>
+</html>

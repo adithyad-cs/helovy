@@ -14,7 +14,7 @@ from app.core.http import etag, require_if_match
 from app.core.routing import HeadAwareRoute
 from app.core.schemas import require_json_body
 from app.modules.businesses.service import get_business
-from app.modules.documents import drafts
+from app.modules.documents import drafts, preview
 from app.modules.documents.schemas import CalculateRequest, DocumentCreate, DocumentPatch
 from app.modules.tenancy.dependencies import Tenant, current_tenant, parse_uuid
 
@@ -108,3 +108,22 @@ def delete_document(
     expected = require_if_match(request)
     drafts.delete_draft(db, tenant, target, expected_version=expected)
     return Response(status_code=204)
+
+
+@router.get("/{document_id}/preview.pdf")
+def preview_pdf(
+    document_id: str,
+    request: Request,
+    tenant: Annotated[Tenant, Depends(current_tenant)],
+    db: Annotated[Session, Depends(get_db)],
+    clock: Annotated[Clock, Depends(get_clock)],
+) -> Response:
+    """E-20: 20 per minute per session (docs/07 §1.9); HEAD counts too (§1.14)."""
+    payload = preview.preview_payload(db, tenant.org_id, parse_uuid(document_id))
+    request.app.state.rate_limits["preview"].check(str(tenant.session_id), clock.now())
+    pdf = preview.render_preview(request.app.state.render_pool, payload)
+    return Response(
+        pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'inline; filename="draft-preview.pdf"'},
+    )

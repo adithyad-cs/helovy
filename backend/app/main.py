@@ -36,6 +36,8 @@ from app.modules.customers.routes import router as customers_router
 from app.modules.documents.routes import business_router as documents_business_router
 from app.modules.documents.routes import router as documents_router
 from app.modules.health.routes import router as health_router
+from app.modules.rendering import registry
+from app.modules.rendering.pool import RenderPool
 from app.modules.rendering.routes import router as templates_router
 from app.modules.storage.client import create_s3_client
 
@@ -119,6 +121,7 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
+        app.state.render_pool.close()
         app.state.db_engine.dispose()
 
     app = FastAPI(
@@ -138,6 +141,10 @@ def create_app(
     app.state.db_sessions = create_session_factory(app.state.db_engine)
     app.state.s3 = create_s3_client(settings)
     app.state.rate_limits = default_limiters()
+    app.state.render_pool = RenderPool(settings.render_workers, settings.render_timeout_s)
+    # The template registry is checked at startup (docs/04 §5) and by /readyz (docs/07 E-02).
+    if not registry.all_match():
+        logger.warning("template files do not match the registry", extra={"event": "templates"})
 
     # Starlette wraps in reverse order of registration: the last added is the outermost.
     # Effective order (docs/04 §5): request ID + security headers → body size limit →

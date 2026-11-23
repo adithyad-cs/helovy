@@ -38,7 +38,10 @@ def test_healthz_does_not_need_database_or_storage(settings: Settings, no_spa: P
 def test_readyz_is_ready_when_database_and_storage_are_up(client: TestClient) -> None:
     response = client.get("/readyz")
     assert response.status_code == 200
-    assert response.json() == {"status": "ready", "checks": {"database": "ok", "storage": "ok"}}
+    assert response.json() == {
+        "status": "ready",
+        "checks": {"database": "ok", "storage": "ok", "templates": "ok"},
+    }
 
 
 def test_readyz_503_when_database_is_down(settings: Settings, no_spa: Path) -> None:
@@ -48,7 +51,7 @@ def test_readyz_503_when_database_is_down(settings: Settings, no_spa: Path) -> N
         assert response.status_code == 503
         assert response.json() == {
             "status": "not_ready",
-            "checks": {"database": "error", "storage": "ok"},
+            "checks": {"database": "error", "storage": "ok", "templates": "ok"},
         }
 
 
@@ -59,7 +62,7 @@ def test_readyz_503_when_storage_is_down(settings: Settings, no_spa: Path) -> No
         assert response.status_code == 503
         assert response.json() == {
             "status": "not_ready",
-            "checks": {"database": "ok", "storage": "error"},
+            "checks": {"database": "ok", "storage": "error", "templates": "ok"},
         }
 
 

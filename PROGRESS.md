@@ -2,21 +2,21 @@
 
 ## Current status
 
-- Active milestone: **M3 complete; M4 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
-- Last updated: 2026-11-24 02:25 IST
+- Active milestone: **M4 complete; M5 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
+- Last updated: 2026-11-24 02:40 IST
 - M0: acceptance still **conditional** on the outstanding Docker verification (unchanged; see "M0 acceptance status"). It is not marked accepted.
-- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday, M2 at 02:07 IST and M3 at 02:25 IST (CP2's M2 + UT-CALC + IT-DOC-01..03 target is met ahead of Tue 13:00). No reduction rule has been applied (applying one is the developer's decision, 10 §9).
+- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday, M2 at 02:07 IST M3 at 02:25 IST (CP2 target met ahead of Tue 13:00) and M4 at 02:40 IST (CP3 target, editor with live totals and the watermarked preview, met ahead of Tue 17:30). No reduction rule has been applied (applying one is the developer's decision, 10 §9).
 - Environment for this run: the **cloud development container** (Linux) with the Compose `db` (PostgreSQL 16.16) and `storage` (SeaweedFS 4.54) services. The developer's Windows laptop is not attached to this session (no shared folder), so the native Windows PostgreSQL and SeaweedFS were **not** reached or tested; every result below is cloud-container evidence unless marked otherwise.
 
 ## Autonomous run checkpoint (for restart recovery)
 
 | Item | State |
 | --- | --- |
-| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`, M2 = `b6a97bf`; M3 commit follows it |
+| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`, M2 = `b6a97bf`, M3 = `552412a`; M4 commit follows it |
 | Databases (cloud container) | `ps5_test`: recreated and migrated to head by every test run. `ps5` (development): not migrated yet (migrated in M8 for the demonstration data) |
 | Services | `docker compose` services `db` and `storage` healthy. The old `app` container still runs the `5402bf9` sandbox image on port 8000; browser checks use a host uvicorn on port 8001 against `ps5_test` |
 | Browser test account | Created in `ps5_test` only (wiped by the next test run); its random password lives in the session scratchpad, never in the repository |
-| Next concrete action | M4: `classic@1` template, Jinja2 environment, restricted fetcher, worker pool, E-20 preview, registry + `template-hash`, `/readyz` template check, preview dialog and Templates page |
+| Next concrete action | M5: migration `0004_issuance`, finalisation service (09 §8), post-commit render → S3 → `stored_files` → artifact `ready`, E-21..E-23, finalise UI, PDF status, download, retry |
 
 ## M0 acceptance status
 
@@ -104,7 +104,7 @@
 | M1 | **Done** (cloud container) | 24 Nov 01:30 | 24 Nov 01:52 | Backend 266/266 (UT-SEC-01/02, DB-01, DB-07, DB-08 part, IT-AUTH-01..06 all automated) · FE-01..FE-03 3/3 · browser sign-in/out flow in headless Chromium | Migration `0001_identity`; Argon2id; hashed session tokens with 24 h idle / 7 day absolute expiry; CSRF HMAC + Origin middleware before routing; DB-backed throttling; E-03..E-05; `create-demo-account`; login page, guard, shell, drawer, user menu, 404 |
 | M2 | **Done** (cloud container) | 24 Nov 01:53 | 24 Nov 02:07 | Backend 322/322 (IT-BIZ-01..03, IT-CUS-01..02, IT-TEN-01..03 for business and customer endpoints, DB-01/DB-08 extended) · FE-01..FE-03 · browser flow | Migration `0002_parties`; E-06..E-12 with 09 §4 validation, ETags, If-Match, signed cursors, prefix search; profile and customer screens with error summary, 412 dialog and leave guard |
 | M3 | **Done** (cloud container) | 24 Nov 02:08 | 24 Nov 02:25 | Backend 420/420 (UT-CALC-01..09 incl. 300-example property test, IT-DOC-01..03, DB-02, DB-03, DB-04, E-13, IT-TEN-01 incl. E-14, E-15, E-17..E-19) · FE-01..FE-03 · browser DC-07..DC-10 | `calc-1.0.0`; migration `0003_documents` with both guard triggers; E-13..E-15, E-17..E-19; in-memory limiter (E-14 60/min); editor with live server totals, validation, save, delete, leave guard, quick-create customer |
-| M4 | Not started | | | | |
+| M4 | **Done** (cloud container) | 24 Nov 02:26 | 24 Nov 02:40 | Backend 472/472 (UT-FMT-01, UT-SEC-03, IT-DOC-04, IT-PDF-05, registry, readiness template check) · FE-01..FE-03 · browser: preview in the in-app iframe (full Chromium 153), Templates page | `classic@1` registered (hash `3dba1d0e1295…`); Jinja2 autoescape + StrictUndefined; restricted fetcher; 2 spawn workers with 20 s kill; E-20; `template-hash` CLI; `/readyz` templates |
 | M5 | Not started | | | | |
 | M6 | Not started | | | | |
 | M7 | Not started | | | | |
@@ -121,8 +121,8 @@
 | L-05 | **Done** | IT-CUS-01..02, IT-TEN-01/02; browser: create 3, prefix search `Harb` (URL `?q=`), edit city, empty search state, 404 state, 360 px cards | |
 | L-06 | **Done** | IT-DOC-01/02; browser: create for a customer, add/remove lines, save, reload (DC-10), delete with confirmation, leave guard, 412 dialog wired | Quick-create customer dialog and the in-app route blocker are both implemented (R5 not needed) |
 | L-07 | **Done** | UT-CALC-01..09, IT-DOC-03; browser DC-07 (₹1,800.00 / ₹900.00 / ₹2,700.00 from E-14), DC-08 (₹1.01), DC-09 messages | Strings-only money end to end; the SPA formats server strings without `Number` |
-| L-08 | Not started | — | M4 (Spike A proved WeasyPrint + bundled fonts + ₹ in the cloud container image; a native Windows WeasyPrint smoke test also passed, developer-reported) |
-| L-09 | Not started | — | M4 |
+| L-08 | **Done** | UT-FMT-01, template-level tests (title "Invoice", exact SPECIMEN, no forbidden words, GSTIN only as a label), 45-line render: header repeats, rows unsplit, "Page X of Y"; registry hash checked by `/readyz` | Rendered on the cloud container host (WeasyPrint 70.0); the image path was proven by Spike A in M0 |
+| L-09 | **Done** | IT-DOC-04, rate limit, HEAD, 503 on timeout; browser: Preview saves first, then shows the watermarked PDF in the dialog (full Chromium), "Open preview" below 768 px | Nothing stored; no audit event |
 | L-10 | Not started | — | M5 |
 | L-11 | Not started | — | M5 (the SeaweedFS gate proved private storage and authenticated round trips) |
 | L-12 | Not started | — | M6 |
@@ -198,6 +198,11 @@
 | 24 Nov 02:15 | E-14 counts a request toward the 60/min limit after body validation and the business lookup (a 422 or 404 is not counted) | 07 §1.9 | Claude Code |
 | 24 Nov 02:20 | Editor live totals: blank new rows (no description and no price) are not sent to E-14 and show "—"; server field messages from E-14 are shown under the matching inputs; amounts are dimmed while a newer calculation is pending. Line grid: one DOM structure, a table-like grid with column headers from 768 px (horizontal scroll inside its frame if needed, as FE-05 allows) and labelled stacked cards below | 08 §15.3, §6; 11 FE-05 | Claude Code |
 | 24 Nov 02:20 | `/app/invoices` shows only a "New invoice" action and an honest "not available yet" line until the history list (M6) | 08 §18 | Claude Code |
+| 24 Nov 02:35 | Render pool: persistent `spawn` worker processes (at most `RENDER_WORKERS`), started lazily; each job waits up to `RENDER_TIMEOUT_S` for its result, after which the worker is killed and replaced (`render_timeout`). Workers receive plain payloads and return bytes; a final render re-checks the snapshot hash in the worker (`snapshot_integrity`) | 04 §11; 12 §9; ADR-09 | Claude Code |
+| 24 Nov 02:35 | The template CSS is inlined into the HTML by Jinja (`{% include %}`), so the restricted fetcher only ever serves the bundled font files; the SPECIMEN constant is injected into the `@page` footer from `rendering/constants.py`, the single source also copied into `labels.specimen_text` | 09 §13; 12 §9 | Claude Code |
+| 24 Nov 02:35 | E-20 renders for HEAD as well (status parity, 07 §1.14) and counts toward the same 20/min limit; the limit is counted after the draft checks (404, 409, 422). A render timeout or no free worker → 503 `dependency_unavailable`; another render failure → 500 `internal_error` (logged) | 07 E-20, §1.9, §1.14 | Claude Code |
+| 24 Nov 02:35 | Every render verifies the template files against the registry hash (also in development); `/readyz` reports `warn` in development and `error` in demo/production on a mismatch. `classic@1` is now registered and frozen (any change becomes `classic@2`) | 09 §11; 07 E-02 | Claude Code |
+| 24 Nov 02:38 | **Defect found and fixed:** centred dialogs combined Tailwind 4's `translate` utilities with a `transform` keyframe, doubling the offset; the large preview dialog's close button was off-screen. Keyframes now animate opacity and `scale` only | 08 §7 | Claude Code |
 
 ## Dependencies added (with approval)
 
@@ -249,7 +254,8 @@ All results below were obtained in the cloud development container (Linux) unles
 | V-19 | **Pass (gate 3)** | With the app's credentials and `create_s3_client`: PUT/GET of 256 KiB byte-identical, SHA-256 equal, HeadBucket OK, for both identities. Each identity is refused (403) on the other's bucket. Automated: `test_v19_*`, `test_credentials_are_limited_to_their_own_bucket` |
 | V-12 | Pass (Chromium, cloud container) | Headless Chromium kept the `Secure` `ps5_session` cookie on `http://localhost:8001` (HttpOnly, Secure, SameSite=Lax, Path=/, host-only). To re-check in the presenter's Chrome in M8 (DC-04) |
 | V-13 | Pass | argon2-cffi 25.1.0 defaults: Argon2id, m = 65,536 KiB (64 MiB), t = 3, p = 4, above the OWASP minimum (19 MiB, t = 2, p = 1); asserted by UT-SEC-01 |
-| V-10, V-11, V-14, V-15, V-17 | Not run | Not in scope yet (S-02, M5, M7, before P1) |
+| V-15 | Partial pass (preview) | Full Chromium 153 (new headless) shows the preview PDF in the in-app `blob:` iframe with no CSP console messages. The rest of V-15 (Radix dialogs, whole built SPA) is checked in M7 |
+| V-10, V-11, V-14, V-17 | Not run | Not in scope yet (S-02, M5, before P1) |
 | Clean image build and Compose verification (M0 exit criteria 1 and 8) | **BLOCKED / UNVERIFIED** in both environments | **Windows laptop:** Docker Desktop cannot run (hardware virtualization disabled; BIOS access blocked by an unknown administrator password; no further BIOS attempt), so the build was not attempted there. **Cloud container:** `docker build -t hive-docs:local .` on the unmodified, committed Dockerfile (unchanged since `5402bf9`, also at `0ea973c`) failed in 9 s with exit code 1: in the build's `RUN` containers `apt-get update` reports `Could not resolve 'deb.debian.org'` (no DNS or direct egress for containers in the cloud container's sandbox; `npm ci` was cancelled with it). Diagnostic with CLI flags only (`--network host` plus proxy build arguments, separate tag; no Dockerfile change, no TLS bypass): apt's plain-HTTP Debian sources get `405 Method Not Allowed` from the sandbox proxy, which tunnels HTTPS only, and HTTPS downloads would require trusting the proxy's interception CA inside the build. Both causes are environmental. `hive-docs:local` was not changed (still image `7d9bafcb…`, built earlier through the sandbox-derived Dockerfile from commit `5402bf9` code). **Not run, because the clean image does not exist:** Compose with that image, `/healthz`, `/readyz`, SPA load, storage |
 
 ## Known issues
@@ -267,6 +273,7 @@ All results below were obtained in the cloud development container (Linux) unles
 | — | ~~405 tests with unsafe methods needed a session once the CSRF middleware existed~~: done in M1 (see decisions, 24 Nov 02:05) | Closed |
 | S4 | Pre-existing in the 1.1 documents, not changed by this revision: README, 00, 01 and PROJECT_SUMMARY still say no source code exists; 08 §15.3 paraphrases the SPECIMEN label in dialog copy (recorded in CONSISTENCY_AUDIT §2.1) | Open (documentation; not in scope) |
 | S4 | `document_lines_discount_ck` exactly as documented (06 §3.10) lets a NULL `discount_value` through for `percent` and `amount` (CHECK treats `NULL > 0` as unknown, which passes). The API always rejects it (`required`), so only direct SQL could store such a row. A stricter check (`discount_value IS NOT NULL`) would be a schema change needing approval (15 §7) | Open (developer decision) |
+| S4 | On the cloud container host (not the image), WeasyPrint warns that HarfBuzz-Subset will be required by future versions; the Docker image installs `libharfbuzz-subset0` (M0). No effect on WeasyPrint 70.0 | Open (host only) |
 | S4 | Starlette deprecates `httpx` for `TestClient` in favour of `httpx2` (one warning per test run). `httpx` is the approved package (05 §2) | Open; no change without approval |
 | S4 | In development, the FastAPI docs UI cannot load its CDN assets because of the CSP (12 §4.3); `/openapi.json` works. The docs UI is off in demo and production | Open (by design) |
 | S4 | Access log labels FastAPI's dev-only `/docs` routes as `unmatched` | Open (cosmetic) |
@@ -281,7 +288,7 @@ All results below were obtained in the cloud development container (Linux) unles
 
 ## Next steps
 
-- **M4 (next):** `classic@1` template (08 §20), Jinja2 environment, restricted fetcher, worker pool, E-20 preview, template registry and `template-hash`, `/readyz` template check, preview dialog and Templates page (tests UT-FMT-01, UT-SEC-03, IT-DOC-04, IT-PDF-05).
-- Then M5 to M8 in order (10 §3), each committed and pushed when its tests pass.
+- **M5 (next):** migration `0004_issuance`, the finalisation transaction (09 §8), post-commit render and private storage, E-21..E-23, finalise dialog, PDF status, download and retry (tests UT-NUM, UT-SNAP, IT-FIN-01..07, IT-PDF-01..04, DB-04..06, DB-08, DB-09).
+- Then M6 to M8 in order (10 §3), each committed and pushed when its tests pass.
 - Developer (outstanding from M0): the Docker verification on a Docker-capable machine (`docker build -t hive-docs:local .`, `docker compose up -d`, `/healthz`, `/readyz`, SPA, storage). Not possible on the current Windows laptop; no further BIOS attempt.
 - Developer (native Windows): run the storage gate and the backend suite natively once the native SeaweedFS identity matches `.env.test` (see Known issues).

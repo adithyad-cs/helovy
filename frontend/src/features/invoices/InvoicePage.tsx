@@ -7,6 +7,7 @@ import { DelayedSkeleton, Skeleton } from '../../components/ui/Skeleton'
 import { ErrorState } from '../../components/ui/States'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { DraftEditor } from './DraftEditor'
+import { PreviewButton } from './PreviewDialog'
 
 /** /app/invoices/:documentId: the editor for a draft (docs/08 §15). */
 export function InvoicePage() {
@@ -40,5 +41,17 @@ export function InvoicePage() {
       </>
     )
   }
-  return <DraftEditor key={document.data.data.id} current={document.data} onReload={() => void document.refetch()} />
+  const id = document.data.data.id
+  return (
+    <DraftEditor
+      key={id}
+      current={document.data}
+      onReload={() => void document.refetch()}
+      actions={{
+        render: ({ saving, live, save }) => (
+          <PreviewButton documentId={id} disabled={saving || live.lines.length === 0} beforeOpen={save} />
+        ),
+      }}
+    />
+  )
 }

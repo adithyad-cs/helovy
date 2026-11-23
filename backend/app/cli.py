@@ -1,7 +1,7 @@
 """Administrative command line (docs/05 §8): ``python -m app.cli <command>``.
 
-Implemented: ``init-dev-storage`` (M0) and ``create-demo-account`` (M1). ``template-hash``
-arrives in M4.
+Implemented: ``init-dev-storage`` (M0), ``create-demo-account`` (M1) and ``template-hash``
+(M4).
 
 ``create-demo-account`` connects with the restricted app role (``DATABASE_URL``; docs/06 §11).
 The password comes from ``DEMO_ACCOUNT_PASSWORD`` (set only for that one command) or from a
@@ -123,6 +123,19 @@ def _create_demo_account(email: str, name: str, org: str) -> int:
     return EXIT_OK
 
 
+def _template_hash(template_id: str) -> int:
+    """Print the SHA-256 over a template's files, for the registry (docs/09 §11)."""
+    from app.modules.rendering import registry
+
+    try:
+        entry = registry.get(template_id)
+    except registry.UnknownTemplateError:
+        print(f"template-hash: unknown template {template_id!r}", file=sys.stderr)
+        return EXIT_REFUSED
+    print(registry.template_hash(entry.directory))
+    return EXIT_OK
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli", description="HIVE DOCS admin CLI")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -137,7 +150,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     account.add_argument("--email", required=True)
     account.add_argument("--name", required=True, help="display name of the owner")
     account.add_argument("--org", required=True, help="organization name")
+    hashing = commands.add_parser(
+        "template-hash", help="print the SHA-256 over a template's files (docs/09 §11)"
+    )
+    hashing.add_argument("template_id")
     args = parser.parse_args(argv)
+    if args.command == "template-hash":
+        return _template_hash(args.template_id)
     if args.command == "init-dev-storage":
         return _init_dev_storage()
     if args.command == "create-demo-account":
