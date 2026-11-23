@@ -1,0 +1,62 @@
+[project]
+name = "hive-docs-backend"
+version = "0.1.0"
+description = "HIVE DOCS (PS5) backend: FastAPI modular monolith (docs/04)"
+requires-python = "==3.12.*"
+dependencies = [
+    "alembic>=1.20.1",
+    "argon2-cffi>=25.1.0",
+    "boto3>=1.44.9",
+    "fastapi>=0.165.0",
+    "jinja2>=3.1.6",
+    "psycopg[binary]>=3.3.9",
+    "pydantic>=2.14.4",
+    "pydantic-settings>=2.16.3",
+    "sqlalchemy>=2.0,<2.1",
+    "uvicorn[standard]>=0.54.0",
+    "weasyprint>=70.0,<71",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "hypothesis>=6.170.17",
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[tool.uv]
+# Application, not a library: dependencies only, no build backend.
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["app/static"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "T20", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use assert; the CLI and spike scripts print to the terminal by design.
+"tests/**" = ["S101", "S105", "S106", "S311", "S603"]
+"app/cli.py" = ["T201"]
+"scripts/**" = ["T201", "S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# boto3, botocore and weasyprint ship without type information; stubs are not on the
+# approved dependency list (docs/05 §3), so these imports are treated as Any.
+module = ["boto3", "boto3.*", "botocore", "botocore.*", "weasyprint", "weasyprint.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"

@@ -1,0 +1,34 @@
+{
+  "identities": [
+    {
+      "name": "ps5-dev",
+      "credentials": [
+        {
+          "accessKey": "<dev access key>",
+          "secretKey": "<dev secret key>"
+        }
+      ],
+      "actions": [
+        "Admin:ps5-documents-dev",
+        "Read:ps5-documents-dev",
+        "Write:ps5-documents-dev",
+        "List:ps5-documents-dev"
+      ]
+    },
+    {
+      "name": "ps5-test",
+      "credentials": [
+        {
+          "accessKey": "<test access key>",
+          "secretKey": "<test secret key>"
+        }
+      ],
+      "actions": [
+        "Admin:ps5-documents-test",
+        "Read:ps5-documents-test",
+        "Write:ps5-documents-test",
+        "List:ps5-documents-test"
+      ]
+    }
+  ]
+}

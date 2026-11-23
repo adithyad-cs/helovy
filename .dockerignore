@@ -1,0 +1,21 @@
+# Allowlist: everything is excluded unless listed below, so .env files, deploy/seaweedfs/s3.json,
+# tests, scripts, documentation and local build output never enter the build context
+# (docs/05 §7.1: the image contains no .env file, no test data and no secrets).
+*
+
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/app/
+
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/index.html
+!frontend/tsconfig.json
+!frontend/vite.config.ts
+!frontend/src/
+
+# Re-exclude generated files that may exist inside the allowed directories.
+backend/app/static
+**/__pycache__
+**/*.pyc
+**/.DS_Store

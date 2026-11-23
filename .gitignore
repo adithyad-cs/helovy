@@ -1,0 +1,38 @@
+# --- Secrets and local configuration (never commit) ---
+.env
+.env.*
+!.env.example
+!.env.test.example
+deploy/seaweedfs/s3.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+htmlcov/
+
+# --- Frontend ---
+node_modules/
+frontend/dist/
+
+# --- Built SPA copied into the backend at image build time ---
+backend/app/static/
+
+# --- Generated documents, spike output and local artifacts ---
+*.pdf
+*.png
+!backend/app/modules/rendering/assets/**
+!frontend/src/assets/**
+/out/
+/spike-output/
+
+# --- Editors and OS ---
+.DS_Store
+.idea/
+.vscode/
+*.swp

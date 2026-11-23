@@ -1,0 +1,96 @@
+# HIVE DOCS (PS5) — local runtime (docs/05 §7.2, docs/04 §14.1).
+#
+# Services: app (FastAPI + SPA), db (PostgreSQL 16), storage (SeaweedFS, S3 API).
+# Host ports are bound to 127.0.0.1 only. Data lives in the named volumes below.
+#
+# NEVER run `docker compose down -v` on the demonstration machine: it deletes the
+# volumes, and with them every invoice, customer and stored PDF (DC-17).
+#
+# Secrets are read from `.env` (git-ignored). The `${VAR:?}` forms below fail
+# loudly when a required value is missing.
+
+name: ps5
+
+services:
+  db:
+    # PostgreSQL 16, pinned by tag and digest (V-05).
+    image: postgres:16@sha256:3950ad7c3148ca2175ef1b6c36c9efbf78957ae8fbe8b3a5d7c35af50500382f
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      PS5_MIGRATOR_PASSWORD: ${PS5_MIGRATOR_PASSWORD:?set PS5_MIGRATOR_PASSWORD in .env}
+      PS5_APP_PASSWORD: ${PS5_APP_PASSWORD:?set PS5_APP_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  storage:
+    # SeaweedFS 4.54, pinned by tag and digest (V-07; docs/05 §14.1 gate).
+    image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
+    restart: unless-stopped
+    # The image entrypoint adds `-volume.max=0 -master.volumeSizeLimitMB=1024` for `server`.
+    # -ip=storage keeps the server identity stable across restarts; -ip.bind=0.0.0.0 listens on
+    # all container interfaces. Buckets are created only by `init-dev-storage`
+    # (autoCreateBucket off) and the embedded IAM API is not needed (s3.iam off).
+    # Telemetry is off: the local stack makes no outbound network calls (docs/04 §1, 05 §13.1).
+    command:
+      - server
+      - -dir=/data
+      - -ip=storage
+      - -ip.bind=0.0.0.0
+      - -master.telemetry=false
+      - -s3
+      - -s3.port=8333
+      - -s3.config=/etc/seaweedfs/s3.json
+      - -s3.autoCreateBucket=false
+      - -s3.iam=false
+    ports:
+      # Only the S3 API is published; master, volume and filer ports stay inside the compose network.
+      - "127.0.0.1:8333:8333"
+    volumes:
+      - seaweed_data:/data
+      - ./deploy/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8333/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build: .
+    image: hive-docs:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Inside the compose network the hosts are `db` and `storage` (docs/05 §7.2).
+      DATABASE_URL: postgresql+psycopg://ps5_app:${PS5_APP_PASSWORD:?set PS5_APP_PASSWORD in .env}@db:5432/ps5
+      MIGRATION_DATABASE_URL: postgresql+psycopg://ps5_migrator:${PS5_MIGRATOR_PASSWORD:?set PS5_MIGRATOR_PASSWORD in .env}@db:5432/ps5
+      S3_ENDPOINT_URL: http://storage:8333
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=5).status == 200 else 1)"
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 10s
+
+volumes:
+  pgdata:
+  seaweed_data:
