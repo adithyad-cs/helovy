@@ -36,9 +36,14 @@ export function DashboardPage() {
         title="Dashboard"
         description={business.legal_name}
         actions={
-          <ButtonLink to="/app/customers/new" variant="secondary">
-            <PlusIcon width={18} height={18} /> New customer
-          </ButtonLink>
+          <>
+            <ButtonLink to="/app/invoices/new">
+              <PlusIcon width={18} height={18} /> New invoice
+            </ButtonLink>
+            <ButtonLink to="/app/customers/new" variant="secondary">
+              <PlusIcon width={18} height={18} /> New customer
+            </ButtonLink>
+          </>
         }
       />
     </>

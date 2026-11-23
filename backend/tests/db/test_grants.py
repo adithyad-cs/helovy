@@ -44,6 +44,11 @@ def test_app_role_inserts_audit_events_without_a_sequence_grant(app_engine: Engi
         "DELETE FROM memberships",
         "DELETE FROM businesses",
         "DELETE FROM customers",
+        "DELETE FROM number_series",
+        "INSERT INTO templates (id, code, version, doc_type, name, description) "
+        "VALUES ('x@1', 'x', 1, 'invoice', 'X', 'X')",
+        "UPDATE templates SET name = 'Changed'",
+        "DELETE FROM templates",
     ],
 )
 def test_app_role_cannot_update_or_delete_where_not_granted(
@@ -79,4 +84,8 @@ def test_app_role_privileges_match_docs_06_section_11(migrator_engine: Engine) -
         "audit_events": {"SELECT", "INSERT"},
         "businesses": {"SELECT", "INSERT", "UPDATE"},
         "customers": {"SELECT", "INSERT", "UPDATE"},
+        "templates": {"SELECT"},
+        "number_series": {"SELECT", "INSERT", "UPDATE"},
+        "documents": {"SELECT", "INSERT", "UPDATE", "DELETE"},
+        "document_lines": {"SELECT", "INSERT", "UPDATE", "DELETE"},
     }

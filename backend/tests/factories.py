@@ -148,3 +148,61 @@ def create_customer(session: ApiSession, business_id: str, **fields: Any) -> dic
     assert response.status_code == 201, response.text
     body: dict[str, Any] = response.json()
     return body
+
+
+F01 = {
+    "description": "Brand identity consultation",
+    "quantity": "2.5",
+    "unit": "hrs",
+    "unit_price": "800.00",
+    "discount_type": "percent",
+    "discount_value": "10",
+}
+F02 = {"description": "Website support hours", "quantity": "3", "unit": "hrs",
+       "unit_price": "333.33", "discount_type": "amount", "discount_value": "99.99"}  # fmt: skip
+
+
+def create_draft(
+    session: ApiSession, business_id: str, customer_id: str, **fields: Any
+) -> dict[str, Any]:
+    payload = {"customer_id": customer_id, **fields}
+    response = session.post(f"/api/v1/businesses/{business_id}/documents", json=payload)
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+def mark_finalized_in_database(
+    engine: Any, document_id: str, number: str = "INV/26-27/00099"
+) -> None:
+    """Test helper (migrator role): put a draft into the finalised state directly in SQL,
+    to exercise guards before the finalisation service exists. Never used by the app."""
+    from sqlalchemy import text
+
+    with engine.begin() as connection:
+        row = connection.execute(
+            text("SELECT org_id, business_id, created_by FROM documents WHERE id = :id"),
+            {"id": document_id},
+        ).one()
+        series = connection.execute(
+            text(
+                "INSERT INTO number_series (org_id, business_id, financial_year) "
+                "VALUES (:o, :b, '26-27') ON CONFLICT (business_id, doc_type, financial_year) "
+                "DO UPDATE SET updated_at = now() RETURNING id"
+            ),
+            {"o": row.org_id, "b": row.business_id},
+        ).scalar_one()
+        connection.execute(
+            text(
+                "UPDATE documents SET status = 'finalized', number_series_id = :s, "
+                "sequence_no = :n, document_number = :num, issue_date = DATE '2026-11-25', "
+                "finalized_at = now(), finalized_by = :u, version = version + 1 WHERE id = :id"
+            ),
+            {
+                "s": series,
+                "n": int(number.rsplit("/", 1)[1]),
+                "num": number,
+                "u": row.created_by,
+                "id": document_id,
+            },
+        )

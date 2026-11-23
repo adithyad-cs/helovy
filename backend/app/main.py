@@ -25,6 +25,7 @@ from app.core.db import create_db_engine, create_session_factory
 from app.core.errors import problem_response, register_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import BodySizeLimitMiddleware, RequestContextMiddleware
+from app.core.ratelimit import default_limiters
 from app.core.routing import HeadAwareRoute
 from app.modules.auth.csrf import CsrfOriginMiddleware
 from app.modules.auth.dependencies import authenticate
@@ -32,7 +33,10 @@ from app.modules.auth.routes import router as auth_router
 from app.modules.businesses.routes import router as businesses_router
 from app.modules.businesses.service import summary_for_org
 from app.modules.customers.routes import router as customers_router
+from app.modules.documents.routes import business_router as documents_business_router
+from app.modules.documents.routes import router as documents_router
 from app.modules.health.routes import router as health_router
+from app.modules.rendering.routes import router as templates_router
 from app.modules.storage.client import create_s3_client
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -133,6 +137,7 @@ def create_app(
     app.state.db_engine = create_db_engine(settings)
     app.state.db_sessions = create_session_factory(app.state.db_engine)
     app.state.s3 = create_s3_client(settings)
+    app.state.rate_limits = default_limiters()
 
     # Starlette wraps in reverse order of registration: the last added is the outermost.
     # Effective order (docs/04 §5): request ID + security headers → body size limit →
@@ -149,6 +154,9 @@ def create_app(
     session = [Depends(authenticate)]
     app.include_router(businesses_router, dependencies=session)
     app.include_router(customers_router, dependencies=session)
+    app.include_router(templates_router, dependencies=session)
+    app.include_router(documents_business_router, dependencies=session)
+    app.include_router(documents_router, dependencies=session)
     app.state.business_summary = summary_for_org
     _mount_spa(app, static_dir)
     logger.info("application created", extra={"event": "app.created"})

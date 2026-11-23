@@ -6,6 +6,9 @@ import { BusinessProfilePage } from '../features/business/BusinessProfilePage'
 import { CustomerFormPage } from '../features/customers/CustomerFormPage'
 import { CustomerListPage } from '../features/customers/CustomerListPage'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
+import { InvoicePage } from '../features/invoices/InvoicePage'
+import { InvoicesIndexPage } from '../features/invoices/InvoicesIndexPage'
+import { NewInvoicePage } from '../features/invoices/NewInvoicePage'
 import { AppShell } from './AppShell'
 import { NotBuiltYetPage } from './NotBuiltYetPage'
 import { NotFoundPage } from './NotFoundPage'
@@ -32,7 +35,9 @@ const router = createBrowserRouter([
               { path: 'customers', element: <CustomerListPage /> },
               { path: 'customers/new', element: <CustomerFormPage /> },
               { path: 'customers/:customerId', element: <CustomerFormPage /> },
-              { path: 'invoices/*', element: <NotBuiltYetPage title="Invoices" /> },
+              { path: 'invoices', element: <InvoicesIndexPage /> },
+              { path: 'invoices/new', element: <NewInvoicePage /> },
+              { path: 'invoices/:documentId', element: <InvoicePage /> },
             ],
           },
           { path: 'templates', element: <NotBuiltYetPage title="Templates" /> },

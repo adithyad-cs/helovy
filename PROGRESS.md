@@ -2,21 +2,21 @@
 
 ## Current status
 
-- Active milestone: **M2 complete; M3 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
-- Last updated: 2026-11-24 02:07 IST
+- Active milestone: **M3 complete; M4 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
+- Last updated: 2026-11-24 02:25 IST
 - M0: acceptance still **conditional** on the outstanding Docker verification (unchanged; see "M0 acceptance status"). It is not marked accepted.
-- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday and M2 at 02:07 IST. No reduction rule has been applied (applying one is the developer's decision, 10 §9).
+- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday, M2 at 02:07 IST and M3 at 02:25 IST (CP2's M2 + UT-CALC + IT-DOC-01..03 target is met ahead of Tue 13:00). No reduction rule has been applied (applying one is the developer's decision, 10 §9).
 - Environment for this run: the **cloud development container** (Linux) with the Compose `db` (PostgreSQL 16.16) and `storage` (SeaweedFS 4.54) services. The developer's Windows laptop is not attached to this session (no shared folder), so the native Windows PostgreSQL and SeaweedFS were **not** reached or tested; every result below is cloud-container evidence unless marked otherwise.
 
 ## Autonomous run checkpoint (for restart recovery)
 
 | Item | State |
 | --- | --- |
-| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`; M2 commit follows it |
+| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`, M2 = `b6a97bf`; M3 commit follows it |
 | Databases (cloud container) | `ps5_test`: recreated and migrated to head by every test run. `ps5` (development): not migrated yet (migrated in M8 for the demonstration data) |
 | Services | `docker compose` services `db` and `storage` healthy. The old `app` container still runs the `5402bf9` sandbox image on port 8000; browser checks use a host uvicorn on port 8001 against `ps5_test` |
 | Browser test account | Created in `ps5_test` only (wiped by the next test run); its random password lives in the session scratchpad, never in the repository |
-| Next concrete action | M3: `calc` module (calc-1.0.0) with fixtures F-01..F-14, migration `0003_documents`, E-13..E-15 and E-17..E-19, invoice editor |
+| Next concrete action | M4: `classic@1` template, Jinja2 environment, restricted fetcher, worker pool, E-20 preview, registry + `template-hash`, `/readyz` template check, preview dialog and Templates page |
 
 ## M0 acceptance status
 
@@ -103,7 +103,7 @@
 | M0 | Implemented and corrected; committed and pushed (`5402bf9`, `0ea973c`); acceptance conditional: Docker verification outstanding | 23 Nov 17:12 | 23 Nov 19:00 (corrections committed 19:52) | Backend 180/180 · FE-01..FE-03 3/3 (cloud container) | WeasyPrint 70.0 locked; SeaweedFS 4.54 verification gate passed (V-07, V-08, V-18, V-19). Reviews: 405 and HEAD contracts added (docs 1.2). The clean build of the committed Dockerfile and the Compose verification are BLOCKED in the cloud container and cannot run on the developer's Windows laptop. Two worker restarts during the session (Docker daemon restarted, no data lost) |
 | M1 | **Done** (cloud container) | 24 Nov 01:30 | 24 Nov 01:52 | Backend 266/266 (UT-SEC-01/02, DB-01, DB-07, DB-08 part, IT-AUTH-01..06 all automated) · FE-01..FE-03 3/3 · browser sign-in/out flow in headless Chromium | Migration `0001_identity`; Argon2id; hashed session tokens with 24 h idle / 7 day absolute expiry; CSRF HMAC + Origin middleware before routing; DB-backed throttling; E-03..E-05; `create-demo-account`; login page, guard, shell, drawer, user menu, 404 |
 | M2 | **Done** (cloud container) | 24 Nov 01:53 | 24 Nov 02:07 | Backend 322/322 (IT-BIZ-01..03, IT-CUS-01..02, IT-TEN-01..03 for business and customer endpoints, DB-01/DB-08 extended) · FE-01..FE-03 · browser flow | Migration `0002_parties`; E-06..E-12 with 09 §4 validation, ETags, If-Match, signed cursors, prefix search; profile and customer screens with error summary, 412 dialog and leave guard |
-| M3 | Not started | | | | |
+| M3 | **Done** (cloud container) | 24 Nov 02:08 | 24 Nov 02:25 | Backend 420/420 (UT-CALC-01..09 incl. 300-example property test, IT-DOC-01..03, DB-02, DB-03, DB-04, E-13, IT-TEN-01 incl. E-14, E-15, E-17..E-19) · FE-01..FE-03 · browser DC-07..DC-10 | `calc-1.0.0`; migration `0003_documents` with both guard triggers; E-13..E-15, E-17..E-19; in-memory limiter (E-14 60/min); editor with live server totals, validation, save, delete, leave guard, quick-create customer |
 | M4 | Not started | | | | |
 | M5 | Not started | | | | |
 | M6 | Not started | | | | |
@@ -119,15 +119,15 @@
 | L-03 | **Done** | Browser: nav with `aria-current`, focus to `h1` on navigation, 360 px drawer, unknown `/app/...` → 404 page, `next` return after sign-in | Business, Customers, Invoices and Templates show an honest "not available in this build yet" page until M2–M6 replace them |
 | L-04 | **Done** | IT-BIZ-01..03; browser: create with invalid PIN → field error and focus, create, edit phone with toast, leave guard | DC-15 (issued invoices unchanged) is checked once finalisation exists (M5) |
 | L-05 | **Done** | IT-CUS-01..02, IT-TEN-01/02; browser: create 3, prefix search `Harb` (URL `?q=`), edit city, empty search state, 404 state, 360 px cards | |
-| L-06 | Not started | — | M3 |
-| L-07 | Not started | — | M3 |
+| L-06 | **Done** | IT-DOC-01/02; browser: create for a customer, add/remove lines, save, reload (DC-10), delete with confirmation, leave guard, 412 dialog wired | Quick-create customer dialog and the in-app route blocker are both implemented (R5 not needed) |
+| L-07 | **Done** | UT-CALC-01..09, IT-DOC-03; browser DC-07 (₹1,800.00 / ₹900.00 / ₹2,700.00 from E-14), DC-08 (₹1.01), DC-09 messages | Strings-only money end to end; the SPA formats server strings without `Number` |
 | L-08 | Not started | — | M4 (Spike A proved WeasyPrint + bundled fonts + ₹ in the cloud container image; a native Windows WeasyPrint smoke test also passed, developer-reported) |
 | L-09 | Not started | — | M4 |
 | L-10 | Not started | — | M5 |
 | L-11 | Not started | — | M5 (the SeaweedFS gate proved private storage and authenticated round trips) |
 | L-12 | Not started | — | M6 |
 | L-13 | Not started | — | M6 |
-| L-14 | In progress | IT-TEN-01..03 for E-07..E-12 (`tests/integration/test_tenancy.py`) | Document endpoints are added to the suite in M3–M6 |
+| L-14 | In progress | IT-TEN-01..03 for E-07..E-15, E-17..E-19 (`tests/integration/test_tenancy.py`) | E-16, E-20..E-23 join the suite in M4–M6 |
 | L-15 | In progress | FE-01..FE-03 | Design tokens, fonts, breakpoints and the reduced-motion base rule are in place; pages arrive M1–M7 |
 | L-16 | In progress | IT-HLT-01 (partial); Compose stack healthy in the cloud container with the sandbox-derived image of `5402bf9` code | Compose with named volumes and 127.0.0.1 ports, E-01/E-02, no committed secrets. The clean build of the committed Dockerfile and Compose with the current code are outstanding (BLOCKED). DC-17 (persistence across `down`/`up`) is verified in M8 |
 
@@ -192,6 +192,12 @@
 | 24 Nov 02:05 | If-Match must be a strong version ETag (`"4"`); anything else is 400 `malformed_request` ("bad header format", 07 §1.12); missing → 428 | 07 §1.6 | Claude Code |
 | 24 Nov 02:05 | **Defect found and fixed:** `HeadAwareRoute` answered HEAD through the route's own app, which in FastAPI 0.165 skips the include-level dependencies of included routers (the session dependency added in `main.py`). HEAD on tenant endpoints failed closed with 401 (no data exposed). HEAD now runs through FastAPI's effective route context (the same app GET uses); regression test `test_head_runs_include_level_dependencies` | 07 §1.14 | Claude Code (fix within the approved HEAD contract) |
 | 24 Nov 02:05 | Ruff: `E501` (line length) is not enforced in `tests/**`, so case tables and URLs stay readable; the formatter still runs | 11 §6 (ruff clean) | Claude Code |
+| 24 Nov 02:15 | `calc` input codes: a plain decimal with too many decimals → `too_many_decimals`; a plain decimal outside the range (including too many integer digits, for example quantity `12345678`) → `out_of_range`; anything else (sign, exponent, spaces, grouping, leading zeros, `1.`, `.5`) → `invalid_decimal`; a non-string → `must_be_string`. `exceeds_gross` is reported at `/lines/{i}/discount_value` with the gross in the message; `total_too_large` and `too_many_lines` at `/lines` | 09 §4.1, §4.3; 07 §1.5 | Claude Code (precedence detail) |
+| 24 Nov 02:15 | Line `discount_type` defaults to `none` when absent; `discount_value` must be absent or null for `none` (`invalid_choice`) and is `required` for percent and amount | 09 §4.1; 06 §3.10 | Claude Code |
+| 24 Nov 02:15 | Saving a draft (E-15, E-18) also refuses `total_too_large`, so a stored draft can always be displayed and finalised within the limit. Every successful PATCH increments `version` (09 §12) | 09 §3 step 7, §12 | Claude Code |
+| 24 Nov 02:15 | E-14 counts a request toward the 60/min limit after body validation and the business lookup (a 422 or 404 is not counted) | 07 §1.9 | Claude Code |
+| 24 Nov 02:20 | Editor live totals: blank new rows (no description and no price) are not sent to E-14 and show "—"; server field messages from E-14 are shown under the matching inputs; amounts are dimmed while a newer calculation is pending. Line grid: one DOM structure, a table-like grid with column headers from 768 px (horizontal scroll inside its frame if needed, as FE-05 allows) and labelled stacked cards below | 08 §15.3, §6; 11 FE-05 | Claude Code |
+| 24 Nov 02:20 | `/app/invoices` shows only a "New invoice" action and an honest "not available yet" line until the history list (M6) | 08 §18 | Claude Code |
 
 ## Dependencies added (with approval)
 
@@ -260,6 +266,7 @@ All results below were obtained in the cloud development container (Linux) unles
 | S4 | M4 and M5 (E-20 preview, E-22 download): HEAD must run the same checks as GET without recording `document.pdf_downloaded`; header fields known only after generating the content may be omitted (07 §1.14) | Open (M4/M5 note) |
 | — | ~~405 tests with unsafe methods needed a session once the CSRF middleware existed~~: done in M1 (see decisions, 24 Nov 02:05) | Closed |
 | S4 | Pre-existing in the 1.1 documents, not changed by this revision: README, 00, 01 and PROJECT_SUMMARY still say no source code exists; 08 §15.3 paraphrases the SPECIMEN label in dialog copy (recorded in CONSISTENCY_AUDIT §2.1) | Open (documentation; not in scope) |
+| S4 | `document_lines_discount_ck` exactly as documented (06 §3.10) lets a NULL `discount_value` through for `percent` and `amount` (CHECK treats `NULL > 0` as unknown, which passes). The API always rejects it (`required`), so only direct SQL could store such a row. A stricter check (`discount_value IS NOT NULL`) would be a schema change needing approval (15 §7) | Open (developer decision) |
 | S4 | Starlette deprecates `httpx` for `TestClient` in favour of `httpx2` (one warning per test run). `httpx` is the approved package (05 §2) | Open; no change without approval |
 | S4 | In development, the FastAPI docs UI cannot load its CDN assets because of the CSP (12 §4.3); `/openapi.json` works. The docs UI is off in demo and production | Open (by design) |
 | S4 | Access log labels FastAPI's dev-only `/docs` routes as `unmatched` | Open (cosmetic) |
@@ -274,7 +281,7 @@ All results below were obtained in the cloud development container (Linux) unles
 
 ## Next steps
 
-- **M3 (next):** `calc` module and fixtures, migration `0003_documents`, E-13..E-15, E-17..E-19, invoice editor (tests UT-CALC-01..09, IT-DOC-01..03, DB-02, DB-03).
-- Then M4 to M8 in order (10 §3), each committed and pushed when its tests pass.
+- **M4 (next):** `classic@1` template (08 §20), Jinja2 environment, restricted fetcher, worker pool, E-20 preview, template registry and `template-hash`, `/readyz` template check, preview dialog and Templates page (tests UT-FMT-01, UT-SEC-03, IT-DOC-04, IT-PDF-05).
+- Then M5 to M8 in order (10 §3), each committed and pushed when its tests pass.
 - Developer (outstanding from M0): the Docker verification on a Docker-capable machine (`docker build -t hive-docs:local .`, `docker compose up -d`, `/healthz`, `/readyz`, SPA, storage). Not possible on the current Windows laptop; no further BIOS attempt.
 - Developer (native Windows): run the storage gate and the backend suite natively once the native SeaweedFS identity matches `.env.test` (see Known issues).

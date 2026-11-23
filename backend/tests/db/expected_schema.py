@@ -35,7 +35,33 @@ PARTIES_CONSTRAINTS = {
 PARTIES_INDEXES = {"customers_business_name_idx", "customers_business_created_idx"}
 PARTIES_TABLES = {"businesses", "customers"}
 
-TABLES = IDENTITY_TABLES | PARTIES_TABLES
-CONSTRAINTS = IDENTITY_CONSTRAINTS | PARTIES_CONSTRAINTS
-INDEXES = IDENTITY_INDEXES | PARTIES_INDEXES
-TRIGGERS = IDENTITY_TRIGGERS
+# 0003_documents (M3): docs/06 §3.7-§3.10, §10, §12.
+DOCUMENTS_CONSTRAINTS = {
+    "templates_code_version_uq",
+    "number_series_business_fk",
+    "number_series_scope_uq",
+    "number_series_id_business_uq",
+    "documents_business_fk",
+    "documents_customer_fk",
+    "documents_series_fk",
+    "documents_state_ck",
+    "documents_due_date_ck",
+    "documents_number_uq",
+    "documents_series_seq_uq",
+    "documents_id_org_uq",
+    "document_lines_document_fk",
+    "document_lines_position_uq",
+    "document_lines_discount_ck",
+}
+DOCUMENTS_INDEXES = {
+    "documents_business_created_idx",
+    "documents_business_status_created_idx",
+    "documents_customer_idx",
+}
+DOCUMENTS_TRIGGERS = {"trg_documents_guard", "trg_document_lines_guard"}
+DOCUMENTS_TABLES = {"templates", "number_series", "documents", "document_lines"}
+
+TABLES = IDENTITY_TABLES | PARTIES_TABLES | DOCUMENTS_TABLES
+CONSTRAINTS = IDENTITY_CONSTRAINTS | PARTIES_CONSTRAINTS | DOCUMENTS_CONSTRAINTS
+INDEXES = IDENTITY_INDEXES | PARTIES_INDEXES | DOCUMENTS_INDEXES
+TRIGGERS = IDENTITY_TRIGGERS | DOCUMENTS_TRIGGERS

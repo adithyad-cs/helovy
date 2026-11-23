@@ -15,9 +15,11 @@ from sqlalchemy import Engine, text
 from sqlalchemy.exc import IntegrityError
 
 from tests.factories import (
+    F01,
     ApiSession,
     create_business,
     create_customer,
+    create_draft,
     new_client,
     signed_in,
     trusted,
@@ -31,8 +33,18 @@ def two_orgs(client: TestClient) -> tuple[ApiSession, ApiSession, dict[str, str]
     org_a = trusted(client)
     business_a = create_business(org_a)
     customer_a = create_customer(org_a, business_a["id"])
+    draft_a = create_draft(org_a, business_a["id"], customer_a["id"], lines=[F01])
     org_b = signed_in(client.app, org_name="Isolation Check Org")  # type: ignore[arg-type]
-    return org_a, org_b, {"business": business_a["id"], "customer": customer_a["id"]}
+    create_business(org_b)  # B has its own business, so 404s cannot come from "no business"
+    return (
+        org_a,
+        org_b,
+        {
+            "business": business_a["id"],
+            "customer": customer_a["id"],
+            "document": draft_a["id"],
+        },
+    )
 
 
 def _comparable(body: dict[str, object]) -> dict[str, object]:
@@ -40,7 +52,7 @@ def _comparable(body: dict[str, object]) -> dict[str, object]:
 
 
 def _requests(ids: dict[str, str]) -> list[tuple[str, str, dict[str, object]]]:
-    business, customer = ids["business"], ids["customer"]
+    business, customer, document = ids["business"], ids["customer"], ids["document"]
     return [
         ("GET", f"/api/v1/businesses/{business}", {}),
         ("PATCH", f"/api/v1/businesses/{business}", {"json": {"city": "X"}, "headers": {"If-Match": '"1"'}}),
@@ -52,6 +64,11 @@ def _requests(ids: dict[str, str]) -> list[tuple[str, str, dict[str, object]]]:
             f"/api/v1/businesses/{business}/customers/{customer}",
             {"json": {"city": "X"}, "headers": {"If-Match": '"1"'}},
         ),
+        ("POST", f"/api/v1/businesses/{business}/calculate", {"json": {"lines": []}}),
+        ("POST", f"/api/v1/businesses/{business}/documents", {"json": {"customer_id": customer}}),
+        ("GET", f"/api/v1/documents/{document}", {}),
+        ("PATCH", f"/api/v1/documents/{document}", {"json": {"notes": "x"}, "headers": {"If-Match": '"1"'}}),
+        ("DELETE", f"/api/v1/documents/{document}", {"headers": {"If-Match": '"1"'}}),
     ]  # fmt: skip
 
 
@@ -59,7 +76,7 @@ def test_it_ten_01_foreign_ids_are_404_like_missing_ids(
     two_orgs: tuple[ApiSession, ApiSession, dict[str, str]],
 ) -> None:
     org_a, org_b, ids_a = two_orgs
-    missing = {"business": MISSING, "customer": MISSING}
+    missing = {"business": MISSING, "customer": MISSING, "document": MISSING}
     for (method, url, kwargs), (_, missing_url, _) in zip(
         _requests(ids_a), _requests(missing), strict=True
     ):
@@ -75,6 +92,8 @@ def test_it_ten_01_foreign_ids_are_404_like_missing_ids(
     # Organization A's records are unchanged.
     business = org_a.get(f"/api/v1/businesses/{ids_a['business']}").json()
     assert business["city"] == "Bengaluru" and business["version"] == 1
+    document = org_a.get(f"/api/v1/documents/{ids_a['document']}").json()
+    assert document["version"] == 1 and document["notes"] is None
 
 
 def test_it_ten_01_business_owner_still_sees_own_records(

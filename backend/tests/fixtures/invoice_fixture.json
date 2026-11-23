@@ -1,0 +1,45 @@
+{
+  "source": "docs/09 §15 (F-01 to F-16). Canonical cases for UT-CALC, UT-FMT, IT-DOC-03, IT-FIN-01 and DC-07/DC-08.",
+  "lines": {
+    "F-01": {"input": {"quantity": "2.5", "unit_price": "800.00", "discount_type": "percent", "discount_value": "10"},
+             "expected": {"gross": "2000.00", "discount": "200.00", "line_total": "1800.00"}},
+    "F-02": {"input": {"quantity": "3", "unit_price": "333.33", "discount_type": "amount", "discount_value": "99.99"},
+             "expected": {"gross": "999.99", "discount": "99.99", "line_total": "900.00"}},
+    "F-04": {"input": {"quantity": "1.005", "unit_price": "1.00", "discount_type": "none", "discount_value": null},
+             "expected": {"gross": "1.01", "discount": "0.00", "line_total": "1.01"}},
+    "F-05": {"input": {"quantity": "1", "unit_price": "999.99", "discount_type": "percent", "discount_value": "12.5"},
+             "expected": {"gross": "999.99", "discount": "125.00", "line_total": "874.99"}},
+    "F-06": {"input": {"quantity": "1", "unit_price": "100.00", "discount_type": "percent", "discount_value": "100"},
+             "expected": {"gross": "100.00", "discount": "100.00", "line_total": "0.00"}},
+    "F-07": {"input": {"quantity": "0.333", "unit_price": "3.00", "discount_type": "none", "discount_value": null},
+             "expected": {"gross": "1.00", "discount": "0.00", "line_total": "1.00"}},
+    "F-08": {"input": {"quantity": "2", "unit_price": "0.00", "discount_type": "none", "discount_value": null},
+             "expected": {"gross": "0.00", "discount": "0.00", "line_total": "0.00"}},
+    "F-13": {"input": {"quantity": "0.125", "unit_price": "1.00", "discount_type": "none", "discount_value": null},
+             "expected": {"gross": "0.13", "discount": "0.00", "line_total": "0.13"}},
+    "F-14": {"input": {"quantity": "1", "unit_price": "100.00", "discount_type": "percent", "discount_value": "33.33"},
+             "expected": {"gross": "100.00", "discount": "33.33", "line_total": "66.67"}}
+  },
+  "documents": {
+    "F-03": {"lines": ["F-01", "F-02"],
+             "expected": {"gross_total": "2999.99", "discount_total": "299.99", "grand_total": "2700.00"}}
+  },
+  "errors": {
+    "F-09": {"input": {"quantity": "1", "unit_price": "1000.00", "discount_type": "amount", "discount_value": "1000.01"},
+             "pointer": "/lines/0/discount_value", "code": "exceeds_gross"},
+    "F-10a": {"field": "quantity", "value": "1.0005", "code": "too_many_decimals"},
+    "F-10b": {"field": "quantity", "value": "0", "code": "out_of_range"},
+    "F-10c": {"field": "quantity", "value": "1000000.001", "code": "out_of_range"},
+    "F-10d": {"field": "quantity", "value": 2.5, "code": "must_be_string"},
+    "F-11": {"input": {"quantity": "1000000", "unit_price": "10000000.00", "discount_type": "none", "discount_value": null},
+             "code": "total_too_large"},
+    "F-12": {"line_count": 201, "code": "too_many_lines"}
+  },
+  "formatting": {
+    "F-15": {"123456.78": "₹1,23,456.78", "2700.00": "₹2,700.00", "0.50": "₹0.50", "9999999999999.99": "₹99,99,99,99,99,999.99"}
+  },
+  "numbering": {
+    "F-16": {"financial_years": {"2026-11-25": "26-27", "2027-03-31": "26-27", "2027-04-01": "27-28", "2099-04-01": "99-00"},
+             "numbers": {"1": "INV/26-27/00001", "100000": "INV/26-27/100000"}}
+  }
+}
