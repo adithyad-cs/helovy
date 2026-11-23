@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -27,7 +27,11 @@ from app.core.logging import configure_logging
 from app.core.middleware import BodySizeLimitMiddleware, RequestContextMiddleware
 from app.core.routing import HeadAwareRoute
 from app.modules.auth.csrf import CsrfOriginMiddleware
+from app.modules.auth.dependencies import authenticate
 from app.modules.auth.routes import router as auth_router
+from app.modules.businesses.routes import router as businesses_router
+from app.modules.businesses.service import summary_for_org
+from app.modules.customers.routes import router as customers_router
 from app.modules.health.routes import router as health_router
 from app.modules.storage.client import create_s3_client
 
@@ -140,6 +144,12 @@ def create_app(
 
     app.include_router(health_router)
     app.include_router(auth_router)
+    # Tenant routers: the session is resolved first and the tenant stored on the request;
+    # the modules read it through tenancy.current_tenant and never import auth (docs/04 §3).
+    session = [Depends(authenticate)]
+    app.include_router(businesses_router, dependencies=session)
+    app.include_router(customers_router, dependencies=session)
+    app.state.business_summary = summary_for_org
     _mount_spa(app, static_dir)
     logger.info("application created", extra={"event": "app.created"})
     return app

@@ -25,7 +25,17 @@ IDENTITY_INDEXES = {
 IDENTITY_TRIGGERS = {"trg_audit_events_append_only"}
 IDENTITY_TABLES = {"organizations", "users", "memberships", "sessions", "audit_events"}
 
-TABLES = IDENTITY_TABLES
-CONSTRAINTS = IDENTITY_CONSTRAINTS
-INDEXES = IDENTITY_INDEXES
+# 0002_parties (M2): docs/06 §3.5, §3.6, §12.
+PARTIES_CONSTRAINTS = {
+    "businesses_one_per_org_uq",
+    "businesses_id_org_uq",
+    "customers_business_fk",
+    "customers_id_business_uq",
+}
+PARTIES_INDEXES = {"customers_business_name_idx", "customers_business_created_idx"}
+PARTIES_TABLES = {"businesses", "customers"}
+
+TABLES = IDENTITY_TABLES | PARTIES_TABLES
+CONSTRAINTS = IDENTITY_CONSTRAINTS | PARTIES_CONSTRAINTS
+INDEXES = IDENTITY_INDEXES | PARTIES_INDEXES
 TRIGGERS = IDENTITY_TRIGGERS

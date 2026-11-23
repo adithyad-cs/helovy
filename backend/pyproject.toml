@@ -40,7 +40,8 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "T20", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests use assert; the CLI and spike scripts print to the terminal by design.
-"tests/**" = ["S101", "S105", "S106", "S311", "S603"]
+# Tests may exceed the line length for readable tables of cases and URLs (formatter still runs).
+"tests/**" = ["S101", "S105", "S106", "S311", "S603", "E501"]
 "app/cli.py" = ["T201"]
 "scripts/**" = ["T201", "S101"]
 

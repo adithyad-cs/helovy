@@ -160,6 +160,11 @@ _FIELD_CODES = {
     "string_too_long": "too_long",
     "string_too_short": "too_short",
     "string_type": "must_be_string",
+    "greater_than_equal": "out_of_range",
+    "less_than_equal": "out_of_range",
+    "greater_than": "out_of_range",
+    "less_than": "out_of_range",
+    "int_parsing": "invalid_format",
     "literal_error": "invalid_choice",
     "enum": "invalid_choice",
 }

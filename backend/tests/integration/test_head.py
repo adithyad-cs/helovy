@@ -238,3 +238,29 @@ def test_every_get_route_answers_head(settings: Settings, tmp_path: Path, test_b
             assert head.status_code != 405, route.path
         index = client.head("/")
         assert index.headers["content-length"] == str(len(SPA_INDEX))
+
+
+def test_head_runs_include_level_dependencies(settings: Settings, no_spa: Path) -> None:
+    # Tenant routers are included with the session dependency (main.py); HEAD must run it
+    # exactly like GET, or tenant endpoints would answer HEAD without authentication.
+    from fastapi import Depends
+
+    calls: list[str] = []
+
+    def guard(request: Request) -> None:
+        calls.append(request.method)
+        request.state.guarded = True
+
+    router = APIRouter(route_class=HeadAwareRoute)
+
+    @router.get("/api/v1/test-guarded")
+    def read(request: Request) -> dict[str, bool]:
+        return {"guarded": bool(getattr(request.state, "guarded", False))}
+
+    for client in make_client(settings, no_spa):
+        client.app.include_router(router, dependencies=[Depends(guard)])  # type: ignore[attr-defined]
+        assert client.get("/api/v1/test-guarded").json() == {"guarded": True}
+        head = client.head("/api/v1/test-guarded")
+        assert head.status_code == 200
+        assert head.content == b""
+        assert calls == ["GET", "HEAD"]

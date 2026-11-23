@@ -42,6 +42,8 @@ def test_app_role_inserts_audit_events_without_a_sequence_grant(app_engine: Engi
         "DELETE FROM users",
         "DELETE FROM organizations",
         "DELETE FROM memberships",
+        "DELETE FROM businesses",
+        "DELETE FROM customers",
     ],
 )
 def test_app_role_cannot_update_or_delete_where_not_granted(
@@ -75,4 +77,6 @@ def test_app_role_privileges_match_docs_06_section_11(migrator_engine: Engine) -
         "memberships": {"SELECT", "INSERT", "UPDATE"},
         "sessions": {"SELECT", "INSERT", "UPDATE"},
         "audit_events": {"SELECT", "INSERT"},
+        "businesses": {"SELECT", "INSERT", "UPDATE"},
+        "customers": {"SELECT", "INSERT", "UPDATE"},
     }

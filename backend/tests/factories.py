@@ -121,3 +121,30 @@ def trusted(client: TestClient) -> ApiSession:
     check runs before routing (docs/07 §1.13), so those requests need a valid session.
     """
     return sign_in(client, create_test_account(client.app))  # type: ignore[arg-type]
+
+
+BUSINESS = {
+    "legal_name": "Lotus Lane Design Studio (Demo)",
+    "address_line1": "12 Example Road",
+    "address_line2": "Indiranagar",
+    "city": "Bengaluru",
+    "state_code": "29",
+    "postal_code": "560038",
+    "phone": "+91 80 0000 0000",
+    "email": "accounts@demo.invalid",
+}
+
+
+def create_business(session: ApiSession, **overrides: Any) -> dict[str, Any]:
+    response = session.post("/api/v1/businesses", json={**BUSINESS, **overrides})
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return body
+
+
+def create_customer(session: ApiSession, business_id: str, **fields: Any) -> dict[str, Any]:
+    payload = {"display_name": "Riverstone Consulting (Demo)", **fields}
+    response = session.post(f"/api/v1/businesses/{business_id}/customers", json=payload)
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return body

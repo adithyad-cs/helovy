@@ -13,9 +13,23 @@ operations. Every application router uses this class; a test enforces that.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
+from fastapi import routing as fastapi_routing
 from fastapi.routing import APIRoute
 from starlette.routing import Match
 from starlette.types import Receive, Scope, Send
+
+# FastAPI 0.165 runs the routes of included routers through an "effective route context"
+# whose ASGI app carries the include-level dependencies (for example the session dependency
+# added in main.py). APIRoute.handle selects it, then refuses methods the route does not
+# declare; HEAD must use the same app without that GET-only method check. The helper is
+# private, so its absence (another FastAPI version) falls back to the route's own app, and
+# tests/integration/test_head.py fails if include-level dependencies stop running for HEAD.
+_effective_context: Callable[[Scope], Any] | None = getattr(
+    fastapi_routing, "_get_scope_effective_route_context", None
+)
 
 
 class HeadAwareRoute(APIRoute):
@@ -30,6 +44,10 @@ class HeadAwareRoute(APIRoute):
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self._answers_head(scope):
-            await self.app(scope, receive, send)
+            context = _effective_context(scope) if _effective_context else None
+            if context is not None and context.original_route is self and context.app:
+                await context.app(scope, receive, send)
+            else:
+                await self.app(scope, receive, send)
             return
         await super().handle(scope, receive, send)

@@ -2,21 +2,21 @@
 
 ## Current status
 
-- Active milestone: **M1 complete; M2 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
-- Last updated: 2026-11-24 02:10 IST
+- Active milestone: **M2 complete; M3 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
+- Last updated: 2026-11-24 02:07 IST
 - M0: acceptance still **conditional** on the outstanding Docker verification (unchanged; see "M0 acceptance status"). It is not marked accepted.
-- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 02:10 IST Tuesday. No reduction rule has been applied (applying one is the developer's decision, 10 §9).
+- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday and M2 at 02:07 IST. No reduction rule has been applied (applying one is the developer's decision, 10 §9).
 - Environment for this run: the **cloud development container** (Linux) with the Compose `db` (PostgreSQL 16.16) and `storage` (SeaweedFS 4.54) services. The developer's Windows laptop is not attached to this session (no shared folder), so the native Windows PostgreSQL and SeaweedFS were **not** reached or tested; every result below is cloud-container evidence unless marked otherwise.
 
 ## Autonomous run checkpoint (for restart recovery)
 
 | Item | State |
 | --- | --- |
-| Branch / last commit | `claude/busy-bell-14l7rh`; M1 commit follows `ca142b6` (PROGRESS reconciliation) |
+| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`; M2 commit follows it |
 | Databases (cloud container) | `ps5_test`: recreated and migrated to head by every test run. `ps5` (development): not migrated yet (migrated in M8 for the demonstration data) |
 | Services | `docker compose` services `db` and `storage` healthy. The old `app` container still runs the `5402bf9` sandbox image on port 8000; browser checks use a host uvicorn on port 8001 against `ps5_test` |
 | Browser test account | Created in `ps5_test` only (wiped by the next test run); its random password lives in the session scratchpad, never in the repository |
-| Next concrete action | M2: migration `0002_parties`, E-06 to E-12, business profile and customer screens |
+| Next concrete action | M3: `calc` module (calc-1.0.0) with fixtures F-01..F-14, migration `0003_documents`, E-13..E-15 and E-17..E-19, invoice editor |
 
 ## M0 acceptance status
 
@@ -101,8 +101,8 @@
 | Milestone | Status | Started | Finished | Tests (pass/total) | Notes |
 | --- | --- | --- | --- | --- | --- |
 | M0 | Implemented and corrected; committed and pushed (`5402bf9`, `0ea973c`); acceptance conditional: Docker verification outstanding | 23 Nov 17:12 | 23 Nov 19:00 (corrections committed 19:52) | Backend 180/180 · FE-01..FE-03 3/3 (cloud container) | WeasyPrint 70.0 locked; SeaweedFS 4.54 verification gate passed (V-07, V-08, V-18, V-19). Reviews: 405 and HEAD contracts added (docs 1.2). The clean build of the committed Dockerfile and the Compose verification are BLOCKED in the cloud container and cannot run on the developer's Windows laptop. Two worker restarts during the session (Docker daemon restarted, no data lost) |
-| M1 | **Done** (cloud container) | 24 Nov 01:30 | 24 Nov 02:10 | Backend 266/266 (UT-SEC-01/02, DB-01, DB-07, DB-08 part, IT-AUTH-01..06 all automated) · FE-01..FE-03 3/3 · browser sign-in/out flow in headless Chromium | Migration `0001_identity`; Argon2id; hashed session tokens with 24 h idle / 7 day absolute expiry; CSRF HMAC + Origin middleware before routing; DB-backed throttling; E-03..E-05; `create-demo-account`; login page, guard, shell, drawer, user menu, 404 |
-| M2 | Not started | | | | |
+| M1 | **Done** (cloud container) | 24 Nov 01:30 | 24 Nov 01:52 | Backend 266/266 (UT-SEC-01/02, DB-01, DB-07, DB-08 part, IT-AUTH-01..06 all automated) · FE-01..FE-03 3/3 · browser sign-in/out flow in headless Chromium | Migration `0001_identity`; Argon2id; hashed session tokens with 24 h idle / 7 day absolute expiry; CSRF HMAC + Origin middleware before routing; DB-backed throttling; E-03..E-05; `create-demo-account`; login page, guard, shell, drawer, user menu, 404 |
+| M2 | **Done** (cloud container) | 24 Nov 01:53 | 24 Nov 02:07 | Backend 322/322 (IT-BIZ-01..03, IT-CUS-01..02, IT-TEN-01..03 for business and customer endpoints, DB-01/DB-08 extended) · FE-01..FE-03 · browser flow | Migration `0002_parties`; E-06..E-12 with 09 §4 validation, ETags, If-Match, signed cursors, prefix search; profile and customer screens with error summary, 412 dialog and leave guard |
 | M3 | Not started | | | | |
 | M4 | Not started | | | | |
 | M5 | Not started | | | | |
@@ -117,8 +117,8 @@
 | L-01 | Not started | — | M0 has an honest placeholder page at `/` (replaced in M7) |
 | L-02 | **Done** | IT-AUTH-01..06, UT-SEC-01/02, CLI tests; browser: guard redirect, wrong-password message, sign-in, cookie flags, sign-out, Back → /login | No sign-up, no default credentials, no auto-login |
 | L-03 | **Done** | Browser: nav with `aria-current`, focus to `h1` on navigation, 360 px drawer, unknown `/app/...` → 404 page, `next` return after sign-in | Business, Customers, Invoices and Templates show an honest "not available in this build yet" page until M2–M6 replace them |
-| L-04 | Not started | — | M2 |
-| L-05 | Not started | — | M2 |
+| L-04 | **Done** | IT-BIZ-01..03; browser: create with invalid PIN → field error and focus, create, edit phone with toast, leave guard | DC-15 (issued invoices unchanged) is checked once finalisation exists (M5) |
+| L-05 | **Done** | IT-CUS-01..02, IT-TEN-01/02; browser: create 3, prefix search `Harb` (URL `?q=`), edit city, empty search state, 404 state, 360 px cards | |
 | L-06 | Not started | — | M3 |
 | L-07 | Not started | — | M3 |
 | L-08 | Not started | — | M4 (Spike A proved WeasyPrint + bundled fonts + ₹ in the cloud container image; a native Windows WeasyPrint smoke test also passed, developer-reported) |
@@ -127,7 +127,7 @@
 | L-11 | Not started | — | M5 (the SeaweedFS gate proved private storage and authenticated round trips) |
 | L-12 | Not started | — | M6 |
 | L-13 | Not started | — | M6 |
-| L-14 | In progress | `current_tenant` dependency; org from the session only | Tenant endpoints arrive M2–M6 with IT-TEN |
+| L-14 | In progress | IT-TEN-01..03 for E-07..E-12 (`tests/integration/test_tenancy.py`) | Document endpoints are added to the suite in M3–M6 |
 | L-15 | In progress | FE-01..FE-03 | Design tokens, fonts, breakpoints and the reduced-motion base rule are in place; pages arrive M1–M7 |
 | L-16 | In progress | IT-HLT-01 (partial); Compose stack healthy in the cloud container with the sandbox-derived image of `5402bf9` code | Compose with named volumes and 127.0.0.1 ports, E-01/E-02, no committed secrets. The clean build of the committed Dockerfile and Compose with the current code are outstanding (BLOCKED). DC-17 (persistence across `down`/`up`) is verified in M8 |
 
@@ -185,6 +185,13 @@
 | 24 Nov 02:00 | `create-demo-account` connects as the app role (`DATABASE_URL`), the least privilege that can insert the account rows; it validates email, name (1–120), organization (1–200) and password (12–1024) before connecting | 05 §8; 06 §11 | Claude Code |
 | 24 Nov 02:00 | Request bodies must be `application/json` (router dependency `require_json_body`, 400 otherwise); custom validators raise Pydantic errors whose type is the documented field code; `string_type` maps to `must_be_string` | 07 §1.1, §1.5 | Claude Code |
 | 24 Nov 02:05 | **Tests updated, none weakened:** 41 earlier routing cases (405 and 404 with POST, PUT, PATCH or DELETE in test_conventions, test_spa, test_head) now send a valid session, CSRF token and Origin, as recorded in M0's known issues; 8 new cases assert that the CSRF check returns 403 before routing would give 405 or 404. Test fixtures moved to `tests/services.py` (shared by `tests/db` and `tests/integration`); the suite now resets `ps5_test` and migrates it to head once per run and truncates tables before each test | 07 §1.13; 11 §1 | Claude Code |
+| 24 Nov 02:05 | E-09 cursors are opaque base64url JSON `{t, id, sig}` where `sig` is a truncated HMAC (key: CSRF_SECRET key bytes) over the list scope (`customers:{business_id}`) and position, so a tampered or another list's cursor gives 422 at `/cursor` | 07 §1.8 | Claude Code |
+| 24 Nov 02:05 | GSTIN input is upper-cased before validation (users often type lower case); the stored value always matches the 06 pattern. `state_mismatch` is reported at `/gstin`, checked against the stored state when a PATCH changes only one of them | 09 §4.2; 07 E-06, E-10 | Claude Code |
+| 24 Nov 02:05 | A PATCH whose values equal the stored ones changes nothing: 200, same ETag, no audit event. Audit `details.fields` lists the changed (or, on create, the provided) field names only | 06 §9; 07 §1.6 | Claude Code |
+| 24 Nov 02:05 | Customer search `q`: trimmed; empty means no search; LIKE wildcards in `q` are escaped (prefix match only); case folding with Python `lower()` | 07 E-09; 09 §4.3 | Claude Code |
+| 24 Nov 02:05 | If-Match must be a strong version ETag (`"4"`); anything else is 400 `malformed_request` ("bad header format", 07 §1.12); missing → 428 | 07 §1.6 | Claude Code |
+| 24 Nov 02:05 | **Defect found and fixed:** `HeadAwareRoute` answered HEAD through the route's own app, which in FastAPI 0.165 skips the include-level dependencies of included routers (the session dependency added in `main.py`). HEAD on tenant endpoints failed closed with 401 (no data exposed). HEAD now runs through FastAPI's effective route context (the same app GET uses); regression test `test_head_runs_include_level_dependencies` | 07 §1.14 | Claude Code (fix within the approved HEAD contract) |
+| 24 Nov 02:05 | Ruff: `E501` (line length) is not enforced in `tests/**`, so case tables and URLs stay readable; the formatter still runs | 11 §6 (ruff clean) | Claude Code |
 
 ## Dependencies added (with approval)
 
@@ -267,7 +274,7 @@ All results below were obtained in the cloud development container (Linux) unles
 
 ## Next steps
 
-- **M2 (next, in progress in this run):** migration `0002_parties`; E-06 to E-12 with 09 §4 validation, ETags and organization scoping; business profile and customer screens. Tests IT-BIZ-01..03, IT-CUS-01..02, IT-TEN-01 for these endpoints.
-- Then M3 to M8 in order (10 §3), each committed and pushed when its tests pass.
+- **M3 (next):** `calc` module and fixtures, migration `0003_documents`, E-13..E-15, E-17..E-19, invoice editor (tests UT-CALC-01..09, IT-DOC-01..03, DB-02, DB-03).
+- Then M4 to M8 in order (10 §3), each committed and pushed when its tests pass.
 - Developer (outstanding from M0): the Docker verification on a Docker-capable machine (`docker build -t hive-docs:local .`, `docker compose up -d`, `/healthz`, `/readyz`, SPA, storage). Not possible on the current Windows laptop; no further BIOS attempt.
 - Developer (native Windows): run the storage gate and the backend suite natively once the native SeaweedFS identity matches `.env.test` (see Known issues).
