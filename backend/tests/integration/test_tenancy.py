@@ -69,6 +69,10 @@ def _requests(ids: dict[str, str]) -> list[tuple[str, str, dict[str, object]]]:
         ("GET", f"/api/v1/documents/{document}", {}),
         ("PATCH", f"/api/v1/documents/{document}", {"json": {"notes": "x"}, "headers": {"If-Match": '"1"'}}),
         ("GET", f"/api/v1/documents/{document}/preview.pdf", {}),
+        ("POST", f"/api/v1/documents/{document}/finalize",
+         {"headers": {"If-Match": '"1"', "Idempotency-Key": "tenancy-check-key"}}),
+        ("GET", f"/api/v1/documents/{document}/pdf", {}),
+        ("POST", f"/api/v1/documents/{document}/pdf/render", {}),
         ("DELETE", f"/api/v1/documents/{document}", {"headers": {"If-Match": '"1"'}}),
     ]  # fmt: skip
 
@@ -103,7 +107,9 @@ def test_it_ten_01_business_owner_still_sees_own_records(
     org_a, _, ids_a = two_orgs
     for method, url, kwargs in _requests(ids_a):
         if method == "GET":
-            assert org_a.request(method, url, **kwargs).status_code == 200  # type: ignore[arg-type]
+            # Organization A's document is a draft, so its download is 409 (not finalised).
+            expected = 409 if url.endswith("/pdf") else 200
+            assert org_a.request(method, url, **kwargs).status_code == expected  # type: ignore[arg-type]
 
 
 def test_it_ten_02_customer_list_never_shows_other_orgs(client: TestClient) -> None:

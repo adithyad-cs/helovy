@@ -206,3 +206,11 @@ def mark_finalized_in_database(
                 "id": document_id,
             },
         )
+
+
+def finalize(session: ApiSession, document: dict[str, Any], key: str | None = None) -> Response:
+    headers = {
+        "If-Match": f'"{document["version"]}"',
+        "Idempotency-Key": key or secrets.token_urlsafe(12),
+    }
+    return session.post(f"/api/v1/documents/{document['id']}/finalize", headers=headers)

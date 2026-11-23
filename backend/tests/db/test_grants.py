@@ -1,6 +1,7 @@
-"""DB-08 (M1 part): the app role's privileges on the identity tables (docs/06 §11).
+"""DB-08 (docs/11 §2.4): the app role's privileges on every table (docs/06 §11).
 
-The full DB-08 (document_snapshots, stored_files, templates) is completed with 0003/0004.
+As ``ps5_app``: UPDATE and DELETE on document_snapshots, audit_events and stored_files are
+denied; TRUNCATE is denied everywhere; any write to templates is denied.
 """
 
 from __future__ import annotations
@@ -49,6 +50,12 @@ def test_app_role_inserts_audit_events_without_a_sequence_grant(app_engine: Engi
         "VALUES ('x@1', 'x', 1, 'invoice', 'X', 'X')",
         "UPDATE templates SET name = 'Changed'",
         "DELETE FROM templates",
+        "UPDATE document_snapshots SET calc_version = 'calc-9.9.9'",
+        "DELETE FROM document_snapshots",
+        "UPDATE stored_files SET sha256 = repeat('0', 64)",
+        "DELETE FROM stored_files",
+        "DELETE FROM document_artifacts",
+        "DELETE FROM idempotency_keys",
     ],
 )
 def test_app_role_cannot_update_or_delete_where_not_granted(
@@ -88,4 +95,8 @@ def test_app_role_privileges_match_docs_06_section_11(migrator_engine: Engine) -
         "number_series": {"SELECT", "INSERT", "UPDATE"},
         "documents": {"SELECT", "INSERT", "UPDATE", "DELETE"},
         "document_lines": {"SELECT", "INSERT", "UPDATE", "DELETE"},
+        "document_snapshots": {"SELECT", "INSERT"},
+        "stored_files": {"SELECT", "INSERT"},
+        "document_artifacts": {"SELECT", "INSERT", "UPDATE"},
+        "idempotency_keys": {"SELECT", "INSERT", "UPDATE"},
     }

@@ -10,6 +10,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 from fastapi import Request
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 
 class Clock(Protocol):
@@ -17,10 +19,18 @@ class Clock(Protocol):
         """The current time, timezone-aware, in UTC."""
         ...
 
+    def transaction_now(self, db: Session) -> datetime:
+        """The database's ``now()`` inside the current transaction (docs/09 §8 step 4)."""
+        ...
+
 
 class SystemClock:
     def now(self) -> datetime:
         return datetime.now(UTC)
+
+    def transaction_now(self, db: Session) -> datetime:
+        value: datetime = db.execute(select(func.now())).scalar_one()
+        return value.astimezone(UTC)
 
 
 class FrozenClock:
@@ -32,6 +42,9 @@ class FrozenClock:
         self._now = at.astimezone(UTC)
 
     def now(self) -> datetime:
+        return self._now
+
+    def transaction_now(self, db: Session) -> datetime:
         return self._now
 
     def set(self, at: datetime) -> None:

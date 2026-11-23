@@ -39,7 +39,9 @@ def create_s3_client(settings: Settings) -> Any:
             s3={"addressing_style": settings.s3_addressing_style},
             connect_timeout=3,
             read_timeout=10,
-            retries={"max_attempts": 1, "mode": "standard"},
+            # Standard mode retries transient connection errors (for example a pooled
+            # keep-alive connection that the server closed). Every call is idempotent.
+            retries={"max_attempts": 3, "mode": "standard"},
         ),
     )
 

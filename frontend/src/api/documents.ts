@@ -132,11 +132,15 @@ export async function getDocument(id: string): Promise<Versioned<InvoiceDocument
   return versioned(data, etag)
 }
 
-export function useDocument(id: string, options: { refetchInterval?: number | false } = {}) {
+export function useDocument(
+  id: string,
+  options: { refetchInterval?: (data: Versioned<InvoiceDocument> | undefined) => number | false } = {},
+) {
+  const interval = options.refetchInterval
   return useQuery({
     queryKey: queryKeys.document(id),
     queryFn: () => getDocument(id),
-    refetchInterval: options.refetchInterval,
+    refetchInterval: interval ? (query) => interval(query.state.data) : undefined,
   })
 }
 
@@ -185,5 +189,24 @@ export function useTemplates() {
 
 export async function previewPdf(id: string): Promise<Blob> {
   const { blob } = await apiBlob(`/api/v1/documents/${id}/preview.pdf`)
+  return blob
+}
+
+export async function finalizeDocument(id: string, ifMatch: string, idempotencyKey: string): Promise<Versioned<InvoiceDocument>> {
+  const { data, etag } = await apiRequest<InvoiceDocument>(`/api/v1/documents/${id}/finalize`, {
+    method: 'POST',
+    ifMatch,
+    idempotencyKey,
+  })
+  return versioned(data, etag)
+}
+
+export async function retryPdf(id: string): Promise<{ pdf: PdfInfo }> {
+  const { data } = await apiRequest<{ pdf: PdfInfo }>(`/api/v1/documents/${id}/pdf/render`, { method: 'POST' })
+  return data
+}
+
+export async function downloadPdf(id: string): Promise<Blob> {
+  const { blob } = await apiBlob(`/api/v1/documents/${id}/pdf`)
   return blob
 }

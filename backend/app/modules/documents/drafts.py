@@ -129,6 +129,8 @@ def draft_json(document: Document, customer_name: str, lines: list[DocumentLine]
         "snapshot_sha256": None,
         "pdf": None,
         "version": document.version,
+        "seller": None,
+        "buyer": None,
         "created_at": rfc3339(document.created_at),
         "updated_at": rfc3339(document.updated_at),
     }
@@ -231,18 +233,21 @@ def create_draft(
         return draft_json(document, customer_name(db, document), draft_lines(db, document.id))
 
 
-def get_draft_or_document(db: Session, org_id: uuid.UUID, document_id: uuid.UUID) -> dict[str, Any]:
+def get_draft_or_document(
+    db: Session, org_id: uuid.UUID, document_id: uuid.UUID, *, now: datetime
+) -> dict[str, Any]:
     with db.begin():
         document = find_document(db, org_id, document_id)
-        return document_json(db, document)
+        return document_json(db, document, now)
 
 
-def document_json(db: Session, document: Document) -> dict[str, Any]:
-    """Draft: computed now. Finalised: built from the snapshot (finalisation arrives in M5;
-    until then no finalised document can exist)."""
+def document_json(db: Session, document: Document, now: datetime) -> dict[str, Any]:
+    """Draft: computed now. Finalised: built from the snapshot (docs/07 §3.3)."""
     if document.status == "draft":
         return draft_json(document, customer_name(db, document), draft_lines(db, document.id))
-    raise AppError("internal_error")
+    from app.modules.documents.issued import finalized_json
+
+    return finalized_json(db, document, now)
 
 
 def update_draft(

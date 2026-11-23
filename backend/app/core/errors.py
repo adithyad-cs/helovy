@@ -106,6 +106,7 @@ class AppError(Exception):
         detail: str | None = None,
         errors: list[dict[str, str]] | None = None,
         headers: dict[str, str] | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> None:
         if code not in CATALOGUE:
             raise ValueError(f"unknown error code {code!r}")
@@ -114,6 +115,7 @@ class AppError(Exception):
         self.detail = detail
         self.errors = errors
         self.headers = headers
+        self.extra = extra
 
 
 def problem_response(
@@ -123,6 +125,7 @@ def problem_response(
     detail: str | None = None,
     errors: list[dict[str, str]] | None = None,
     headers: dict[str, str] | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> JSONResponse:
     kind = CATALOGUE[code]
     body: dict[str, Any] = {
@@ -136,6 +139,8 @@ def problem_response(
     }
     if errors is not None and kind.status == 422:
         body["errors"] = errors
+    if extra:
+        body.update({key: value for key, value in extra.items() if key not in body})
     return JSONResponse(
         body, status_code=kind.status, media_type=PROBLEM_MEDIA_TYPE, headers=headers
     )
@@ -204,6 +209,7 @@ async def _app_error_handler(request: Request, exc: Exception) -> JSONResponse:
         detail=error.detail,
         errors=error.errors,
         headers=error.headers,
+        extra=error.extra,
     )
 
 

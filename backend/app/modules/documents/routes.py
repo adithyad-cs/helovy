@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,7 @@ from app.core.http import etag, require_if_match
 from app.core.routing import HeadAwareRoute
 from app.core.schemas import require_json_body
 from app.modules.businesses.service import get_business
-from app.modules.documents import drafts, preview
+from app.modules.documents import artifacts, drafts, finalize, preview
 from app.modules.documents.schemas import CalculateRequest, DocumentCreate, DocumentPatch
 from app.modules.tenancy.dependencies import Tenant, current_tenant, parse_uuid
 
@@ -74,9 +74,10 @@ def get_document(
     document_id: str,
     tenant: Annotated[Tenant, Depends(current_tenant)],
     db: Annotated[Session, Depends(get_db)],
+    clock: Annotated[Clock, Depends(get_clock)],
 ) -> JSONResponse:
     return document_response(
-        drafts.get_draft_or_document(db, tenant.org_id, parse_uuid(document_id))
+        drafts.get_draft_or_document(db, tenant.org_id, parse_uuid(document_id), now=clock.now())
     )
 
 
@@ -127,3 +128,78 @@ def preview_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": 'inline; filename="draft-preview.pdf"'},
     )
+
+
+@router.post("/{document_id}/finalize")
+def finalize_document(
+    document_id: str,
+    request: Request,
+    background: BackgroundTasks,
+    tenant: Annotated[Tenant, Depends(current_tenant)],
+    db: Annotated[Session, Depends(get_db)],
+    clock: Annotated[Clock, Depends(get_clock)],
+) -> JSONResponse:
+    """E-21 (docs/09 §8). After commit, the final PDF render runs as a background task."""
+    target = parse_uuid(document_id)
+    key = finalize.check_idempotency_key(request.headers.get("idempotency-key"))
+    expected = require_if_match(request)
+    outcome = finalize.finalize(
+        db,
+        tenant,
+        clock,
+        target,
+        idem_key=key,
+        if_match=request.headers["if-match"].strip(),
+        expected_version=expected,
+    )
+    headers = {"ETag": etag(int(outcome.body["version"]))}
+    if outcome.replayed:
+        headers["Idempotent-Replayed"] = "true"
+    if outcome.artifact_id is not None:
+        background.add_task(artifacts.start_first_render, request.app.state, outcome.artifact_id)
+    return JSONResponse(outcome.body, status_code=outcome.status, headers=headers)
+
+
+@router.get("/{document_id}/pdf")
+def download_pdf(
+    document_id: str,
+    request: Request,
+    tenant: Annotated[Tenant, Depends(current_tenant)],
+    db: Annotated[Session, Depends(get_db)],
+) -> Response:
+    """E-22: hash-verified download; HEAD records no download event (docs/07 §1.14)."""
+    result = artifacts.download(
+        db, request.app.state, tenant, parse_uuid(document_id), record=request.method == "GET"
+    )
+    return Response(
+        result.data,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{result.filename}"',
+            "Content-Digest": artifacts.content_digest(result.sha256),
+        },
+    )
+
+
+@router.post("/{document_id}/pdf/render")
+def retry_render(
+    document_id: str,
+    request: Request,
+    background: BackgroundTasks,
+    tenant: Annotated[Tenant, Depends(current_tenant)],
+    db: Annotated[Session, Depends(get_db)],
+    clock: Annotated[Clock, Depends(get_clock)],
+) -> JSONResponse:
+    """E-23: re-render the same snapshot; never renumbers; 1 per 10 s per document."""
+    outcome = artifacts.claim_retry(
+        db,
+        tenant,
+        parse_uuid(document_id),
+        now=clock.now(),
+        limiter=request.app.state.rate_limits["render_retry"],
+    )
+    if outcome.artifact_id is not None and outcome.attempt is not None:
+        background.add_task(
+            artifacts.render_attempt, request.app.state, outcome.artifact_id, outcome.attempt
+        )
+    return JSONResponse({"pdf": outcome.pdf}, status_code=outcome.status)

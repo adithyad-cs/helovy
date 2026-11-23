@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Controller, useFieldArray, useForm, useWatch, type Path } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 
@@ -29,7 +29,13 @@ import { useLiveTotals, type LiveTotals } from './useLiveTotals'
 
 export interface EditorActionsSlot {
   /** Extra summary actions (Preview, Finalise) provided by later milestones. */
-  render?: (state: { dirty: boolean; saving: boolean; live: LiveTotals; save: () => Promise<boolean> }) => React.ReactNode
+  render?: (state: {
+    dirty: boolean
+    saving: boolean
+    live: LiveTotals
+    save: () => Promise<boolean>
+    conflict: () => void
+  }) => React.ReactNode
 }
 
 /** The draft editor (docs/08 §15.2-§15.4). Amounts always come from the server. */
@@ -53,6 +59,14 @@ export function DraftEditor({ current, onReload, actions }: { current: Versioned
   const lines = useWatch({ control: form.control, name: 'lines' }) ?? []
   const live = useLiveTotals(businessId, lines, document)
   const dirty = form.formState.isDirty
+
+  // When a newer version arrives (after a reload or a save), show it unless the user is editing.
+  const lastEtag = useRef(current.etag)
+  useEffect(() => {
+    if (lastEtag.current === current.etag) return
+    lastEtag.current = current.etag
+    if (!form.formState.isDirty) form.reset(toEditorValues(current.data))
+  }, [current, form])
 
   const notesLength = (useWatch({ control: form.control, name: 'notes' }) ?? '').length
   const termsLength = (useWatch({ control: form.control, name: 'terms' }) ?? '').length
@@ -239,7 +253,7 @@ export function DraftEditor({ current, onReload, actions }: { current: Versioned
             <Button type="submit" size="lg" className="w-full" disabled={!dirty} loading={save.isPending} loadingText="Saving…">
               Save draft
             </Button>
-            {actions?.render?.({ dirty, saving: save.isPending, live, save: saveIfNeeded })}
+            {actions?.render?.({ dirty, saving: save.isPending, live, save: saveIfNeeded, conflict: () => setConflict(true) })}
             <Button variant="danger-ghost" className="w-full" onClick={() => setConfirmDelete(true)} disabled={save.isPending}>
               Delete draft
             </Button>
