@@ -2,21 +2,21 @@
 
 ## Current status
 
-- Active milestone: **M7 complete; M8 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
-- Last updated: 2026-11-24 07:25 IST
+- Active milestone: **M8 complete in the cloud development container; the demonstration-machine run (DC-01 to DC-20) and the freeze are outstanding** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
+- Last updated: 2026-11-24 07:55 IST
 - M0: acceptance still **conditional** on the outstanding Docker verification (unchanged; see "M0 acceptance status"). It is not marked accepted.
-- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday, M2 at 02:07 IST M3 at 02:25 IST (CP2 target met ahead of Tue 13:00) M4 at 02:40 IST (CP3 target met ahead of Tue 17:30) M5 at 02:57 IST (CP4 target met ahead of Tue 21:00) and M6 at 03:02 IST (its commit was delayed to 07:15 IST by a session worker restart; Docker was restarted and the suite re-run green before committing); M7 at 07:25 IST. No reduction rule has been applied (applying one is the developer's decision, 10 §9).
+- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday, M2 at 02:07 IST M3 at 02:25 IST (CP2 target met ahead of Tue 13:00) M4 at 02:40 IST (CP3 target met ahead of Tue 17:30) M5 at 02:57 IST (CP4 target met ahead of Tue 21:00) and M6 at 03:02 IST (its commit was delayed to 07:15 IST by a session worker restart; Docker was restarted and the suite re-run green before committing); M7 at 07:25 IST; M8 at 07:55 IST. No reduction rule has been applied (applying one is the developer's decision, 10 §9).
 - Environment for this run: the **cloud development container** (Linux) with the Compose `db` (PostgreSQL 16.16) and `storage` (SeaweedFS 4.54) services. The developer's Windows laptop is not attached to this session (no shared folder), so the native Windows PostgreSQL and SeaweedFS were **not** reached or tested; every result below is cloud-container evidence unless marked otherwise.
 
 ## Autonomous run checkpoint (for restart recovery)
 
 | Item | State |
 | --- | --- |
-| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`, M2 = `b6a97bf`, M3 = `552412a`, M4 = `68e5728`, M5 = `22f5823`, M6 = `2ef44f6`; M7 commit follows it |
-| Databases (cloud container) | `ps5_test`: recreated and migrated to head by every test run. `ps5` (development): not migrated yet (migrated in M8 for the demonstration data) |
-| Services | `docker compose` services `db` and `storage` healthy. The old `app` container still runs the `5402bf9` sandbox image on port 8000; browser checks use a host uvicorn on port 8001 against `ps5_test` |
-| Browser test account | Created in `ps5_test` only (wiped by the next test run); its random password lives in the session scratchpad, never in the repository |
-| Next concrete action | M8: full automated run, `ps5` development database migrated with the demonstration data set (11 §5), DC checks possible in this environment, README and setup documentation, final report |
+| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`, M2 = `b6a97bf`, M3 = `552412a`, M4 = `68e5728`, M5 = `22f5823`, M6 = `2ef44f6`, M7 = `aad8378`; the M8 commit follows it |
+| Databases (cloud container) | `ps5_test`: recreated and migrated to head by every test run. `ps5` (development): migrated to `0004_issuance (head)` in M8; holds the 11 §5 data set plus the DC rehearsal data (customers 3, invoices INV/26-27/00001 to 00005 with PDFs ready, the Saffron draft); `pg_dump` taken before the rehearsal (session scratchpad only) |
+| Services | `docker compose` services `db` and `storage` healthy (recreated by the DC-17 `down`/`up`, volumes kept). The old `app` container still runs the `5402bf9` sandbox image on port 8000; the M8 rehearsal used a host uvicorn on port 8001 against `ps5` |
+| Accounts | `ps5`: `owner@demo.invalid` and `auditor@demo.invalid`, created with the CLI; their random passwords exist only in the session scratchpad, never in the repository or any document. `ps5_test`: a browser test account, wiped by the next test run |
+| Next concrete action | Autonomous run M1–M8 finished. Developer: choose the presenter machine, run DC-01 to DC-20 on it (DEMO_CHECKLIST.md), then freeze (10 M8.4). Open questions under "Next steps" |
 
 ## M0 acceptance status
 
@@ -49,6 +49,7 @@
 | Native Windows laptop | WeasyPrint 70.0 installed under Python 3.12.10; a generated PDF opened correctly. Does not by itself establish rendering with the bundled Noto fonts and ₹, or the restricted fetcher (V-06 covers those for the container image; native rendering of the project templates starts in M4) | Pass (smoke test) | Developer-reported, 23 Nov |
 | Native Windows laptop | Docker Desktop reports hardware virtualization disabled; BIOS access is blocked by an unknown administrator password; no further BIOS attempt | Docker unavailable | Developer-reported, 23 Nov |
 | Native Windows laptop | Not run natively yet: the backend test suite (needs PostgreSQL 16 and an S3-compatible endpoint), FE-01 to FE-03 | Not run | — |
+| Cloud development container, M8 (24 Nov) | Backend 534/534; ruff, format, mypy `--strict`; FE-01..FE-03; `ps5` migrated; 11 §5 data set; DC-01 to DC-20 rehearsal: 18 pass, 2 partial (DC-01, DC-17: no current-code app image), 0 fail | Pass, except the Docker items (BLOCKED) | Claude Code session runs; table "Demonstration checks" |
 | Both environments | Clean Docker build of the committed Dockerfile; Compose with that image | **BLOCKED / UNVERIFIED** | — |
 
 ## Temporary native-Windows development arrangement (approved by the developer, 23 Nov)
@@ -108,7 +109,7 @@
 | M5 | **Done** (cloud container) | 24 Nov 02:41 | 24 Nov 02:57 | Backend 524/524 (UT-NUM-01/02, UT-SNAP-01..03, IT-FIN-01..07 incl. 10-thread concurrency, IT-PDF-01..04, DB-04..06, DB-08 complete, DB-09, V-14) · FE-01..FE-03 · browser DC-12, DC-13, DC-14, DC-16 (API), DC-18 with SeaweedFS really stopped and restarted | Migration `0004_issuance`; finalisation exactly per 09 §8; post-commit render → private S3 → `stored_files` + `ready`; E-21..E-23; finalise dialog with idempotency key and automatic same-key retries; details view with polling, verified download, retry, integrity |
 | M6 | **Done** (cloud container) | 24 Nov 02:58 | 24 Nov 03:02 (committed 07:15 after a worker restart) | Backend 534/534 (IT-DOC-05, IT-TEN-01/02 incl. E-16) · FE-01..FE-03 · browser: dashboard recents, history filter/search/URL state, DC-15 byte-identical re-download after edits and re-sign-in, 360 px cards | E-16 with status filter, prefix search on number or shown customer name, signed cursors; history page; dashboard with quick actions and five recent invoices |
 | M7 | **Done** (cloud container) | 24 Nov 07:16 | 24 Nov 07:25 | Backend 534/534 · FE-01..FE-03 (no inline scripts) · browser: animation beats, reduced-motion end frame, ENTER THE SYSTEM (anonymous → /login, signed in → /app, keyboard Enter), V-15 whole-app CSP walk in full Chromium, FE-05 matrix 11 pages × 360/768/1280 with no horizontal overflow, keyboard-only finalise | Landing page (08 §10.1) with "The Ledger Assembles" (CSS keyframes, played once in view, < 5 s), favicon, polish fixes below |
-| M8 | Not started | | | | |
+| M8 | **Done in the cloud container**; demonstration-machine run and freeze outstanding | 24 Nov 07:26 | 24 Nov 07:55 | Backend 534/534; ruff, format, mypy `--strict`; FE-01..FE-03 · DC rehearsal: 18 pass, 2 partial (DC-01, DC-17), 0 fail (table below) · demo-data helper tested twice on `ps5_test` | `ps5` migrated; 11 §5 data set entered through the API; README rewritten; `DEMO_CHECKLIST.md`; `backend/scripts/enter_demo_data.py`. No tag and no freeze: they belong on the demonstration machine (10 M8.4) |
 
 ## Features
 
@@ -129,7 +130,7 @@
 | L-13 | **Done** | Browser: set-up card without a business; New invoice, New customer and the five most recent invoices (E-16 `limit=5`) with a business; empty state | No charts, revenue figures or analytics |
 | L-14 | **Done** | IT-TEN-01 (every org-scoped endpoint E-07..E-23: 404 with the same shape as a missing ID), IT-TEN-02 (customer and document lists), IT-TEN-03 (composite FKs) | DC-19 runs `tests/integration/test_tenancy.py` |
 | L-15 | **Done** (automated and scripted browser checks; contrast and screen-reader spot checks are manual, FE-04) | FE-05 matrix; keyboard-only finalise with visible focus; focus to `h1` on navigation and after finalising; loading, empty, error and success states on every page; polite announcements (Saved, Totals updated, PDF ready); reduced motion | The 08 §4 token contrast values are the documented ones; a contrast-checker pass was not run |
-| L-16 | In progress | IT-HLT-01 (partial); Compose stack healthy in the cloud container with the sandbox-derived image of `5402bf9` code | Compose with named volumes and 127.0.0.1 ports, E-01/E-02, no committed secrets. The clean build of the committed Dockerfile and Compose with the current code are outstanding (BLOCKED). DC-17 (persistence across `down`/`up`) is verified in M8 |
+| L-16 | In progress (conditions 2 and 4 met; 1 and 3 partial) | IT-HLT-01; `/healthz` and `/readyz` (database, storage, templates) with the current code on a host uvicorn; DC-17 rehearsal: `docker compose down` (no `-v`) → `up -d` kept every customer, invoice and PDF (same SHA-256); no secrets committed | Compose with named volumes and 127.0.0.1 ports exists, but the app image of the current code was never built (BLOCKED), so condition 1 and a full DC-17 remain unverified |
 
 ## Reduction rules applied
 
@@ -214,6 +215,13 @@
 | 24 Nov 07:10 | Session worker restart (about 4 h): M6 work was intact in the working tree; the Docker daemon was restarted (containers and volumes intact) and the full suite re-run before the M6 commit | — | — |
 | 24 Nov 07:18 | **Open question:** the master directive names the landing button "ENTER"; 08 §10.1, 03 L-01 and DC-02 specify "ENTER THE SYSTEM". The documented label is used (it starts with ENTER and behaves as the directive asks: anonymous → /login, signed in → /app, keyboard operable, never `#`) | 08 §10.1; 03 L-01 | Claude Code (developer to confirm) |
 | 24 Nov 07:20 | **Defects found and fixed in the polish pass:** (1) `sm:` utilities were silently ignored because the theme defines only the 08 §6 breakpoints (`md`, `lg`); they are now `md:` (dialog button rows, landing header badge). (2) Under reduced motion the animation's delays still applied; the global rule now zeroes `animation-delay` and the landing animation is switched off entirely, so the end frame shows at once. (3) After finalising, keyboard focus fell to the page body; it now moves to the invoice number | 08 §6, §7, §8 | Claude Code |
+| 24 Nov 07:30 | M8.2 in the cloud container: `ps5` migrated as `ps5_migrator`; the dev bucket already existed (`init-dev-storage` left it unchanged); `owner@demo.invalid` and `auditor@demo.invalid` created with `create-demo-account` (random passwords kept only in the session scratchpad); the 11 §5 data set entered through the public API, the same path the browser uses. The Saffron Leaf draft's line ("Menu card design", 1 job × ₹4,500.00) is a working assumption: 11 §5 does not fix it | 10 M8.2; 11 §5; 12 §2.1 | Claude Code (developer to confirm) |
+| 24 Nov 07:45 | **Tooling added:** `backend/scripts/enter_demo_data.py` enters the 11 §5 data set through the public API (sign-in, E-06, E-10, E-15, E-19, E-17), standard library only, password from `DEMO_ACCOUNT_PASSWORD` or a hidden prompt, `--email` for another CLI-created account; it refuses to run when the organization already has invoices and never touches the database or the bucket directly. Excluded from the image by `.dockerignore` (like the spike script). Typing the data in the browser remains equivalent | 10 M8.2 ("enter the demonstration data set"); 05 §4 (`scripts/` not listed) | Claude Code (developer to confirm) |
+| 24 Nov 07:45 | **Working assumption (recommendation):** run the DC checks in a separate rehearsal account (`rehearsal@demo.invalid`), because DC-06, DC-12, DC-13 and DC-18 add customers and finalise invoices; on the demonstration account, step 5 of the script would then create a second "Harbour Line Logistics (Demo)". 10 M8.2–M8.3 run the DC checks after the data set is entered and do not address this | 10 M8.2, M8.3; 11 §3, §7 | Claude Code (developer to decide) |
+| 24 Nov 07:40 | **Open question:** DC-14 expects "the PDF title is 'Invoice'". The printed title is "Invoice" (08 §20, 09 §5 and §13), but the PDF metadata title (the HTML `<title>` set in M4) is "Invoice INV/26-27/00002". Not changed: the template is frozen and registered by hash (09 §11), and the documents do not specify the metadata | 11 DC-14; 08 §20; 09 §5, §13 | Claude Code (developer to decide) |
+| 24 Nov 07:40 | DC-19 wording: the invoice page shows its own 08 §15.4 copy, "This invoice doesn't exist or you don't have access."; DC-19 quotes the generic 08 §21 `not_found` message. Same meaning; no change | 08 §15.4, §21; 11 DC-19 | Claude Code |
+| 24 Nov 07:50 | M8.4 freeze **not performed**: no `v0.1.0-demo` tag, no `docker save`, no exported backups. 10 M8.4 places the freeze on the demonstration machine after its DC run, which has not happened, and the image cannot be built in this environment | 10 M8.4 | Claude Code |
+| 24 Nov 07:50 | README rewritten for the implemented product: status, three ways to run (A verified in the cloud container; B Docker Compose unverified; C native Windows unverified), demonstration account and data, tests, known limitations, deployment. `DEMO_CHECKLIST.md` added (presenter machine decision, preparation, prepared data, script with expected screens, fallbacks, after the evaluation). `docs/` unchanged | 10 M8; directive (README, demo checklist) | Claude Code |
 
 ## Dependencies added (with approval)
 
@@ -283,25 +291,48 @@ All results below were obtained in the cloud development container (Linux) unles
 | — | ~~`docs/14` §6 had no decision entry for the HEAD rule~~: resolved in the final documentation cleanup, decision #10 | Closed |
 | — | ~~HEAD on E-20/E-22~~: done; E-20 renders for HEAD (status parity), E-22 verifies but records no download event (`test_head_download_records_nothing`) | Closed |
 | — | ~~405 tests with unsafe methods needed a session once the CSRF middleware existed~~: done in M1 (see decisions, 24 Nov 02:05) | Closed |
-| S4 | Pre-existing in the 1.1 documents, not changed by this revision: README, 00, 01 and PROJECT_SUMMARY still say no source code exists; 08 §15.3 paraphrases the SPECIMEN label in dialog copy (recorded in CONSISTENCY_AUDIT §2.1) | Open (documentation; not in scope) |
+| S4 | Pre-existing in the 1.1 documents, not changed by this revision: 00, 01 and PROJECT_SUMMARY still say no source code exists (README was updated in M8); 08 §15.3 paraphrases the SPECIMEN label in dialog copy (recorded in CONSISTENCY_AUDIT §2.1) | Open (documentation; not in scope) |
 | S4 | `document_lines_discount_ck` exactly as documented (06 §3.10) lets a NULL `discount_value` through for `percent` and `amount` (CHECK treats `NULL > 0` as unknown, which passes). The API always rejects it (`required`), so only direct SQL could store such a row. A stricter check (`discount_value IS NOT NULL`) would be a schema change needing approval (15 §7) | Open (developer decision) |
 | S4 | On the cloud container host (not the image), WeasyPrint warns that HarfBuzz-Subset will be required by future versions; the Docker image installs `libharfbuzz-subset0` (M0). No effect on WeasyPrint 70.0 | Open (host only) |
 | S4 | Starlette deprecates `httpx` for `TestClient` in favour of `httpx2` (one warning per test run). `httpx` is the approved package (05 §2) | Open; no change without approval |
 | S4 | In development, the FastAPI docs UI cannot load its CDN assets because of the CSP (12 §4.3); `/openapi.json` works. The docs UI is off in demo and production | Open (by design) |
 | S4 | Access log labels FastAPI's dev-only `/docs` routes as `unmatched` | Open (cosmetic) |
 | S4 | Image size 476 MB (Pango, HarfBuzz and the Python dependencies) | Open |
+| S4 | The SPA ships as one JavaScript bundle of about 650 kB (Vite warns above 500 kB). Served from localhost; code splitting is future work | Open |
+| S4 | The PDF metadata title includes the number ("Invoice INV/26-27/00002"); the printed title is "Invoice". See decisions, 24 Nov 07:40 | Open (developer to decide) |
 | S4 | The `helovy` cloud environment's setup script is unproven until a fresh session starts on it | Open |
 
 ## Demonstration checks (filled in M8)
 
-| DC | Pass / Fail / Deferred | Notes |
+**Environment: cloud development container (Linux), 24 Nov 07:30–07:50 IST.** Build: `aad8378` code (no code change in M8 except the new tooling script). Host uvicorn against the `ps5` development database and the Compose `db` and `storage` services; headless Chromium 153 (Playwright, scripted outside the repository); the demonstration account and data from 11 §5. **These are rehearsal results. 11 §3 requires the run on the demonstration machine after the freeze, which has not happened.** Native Windows: not run.
+
+| DC | Result (cloud container) | Notes |
 | --- | --- | --- |
-| DC-01 to DC-20 | Not run | M8 |
+| DC-01 | **Partial** | After `docker compose up -d`, `db` and `storage` healthy; the current code (host uvicorn) answers `/healthz` 200 and `/readyz` 200 with `database`, `storage` and `templates` all `ok`. The app container still runs the stale `5402bf9` image (also `ready`). The current app image could not be built: BLOCKED |
+| DC-02 | Pass | Stamp fully shown about 3.3 s after the animation started; the sheet shows ₹2,700.00 and "FINALISED · INV/26-27/00001"; reduced motion: static end frame at load (opacity 1, no animation); ENTER THE SYSTEM → `/login` |
+| DC-03 | Pass | One wrong password → "Email or password is incorrect." |
+| DC-04 | Pass | `ps5_session` HttpOnly, Secure, SameSite=Lax, Path=/; after sign-out, Back and a protected URL both land on `/login?next=…`; E-05 → 401 |
+| DC-05 | Pass | Phone saved with the toast; PIN `012345` → "Enter a 6-digit PIN code that does not start with 0."; stored values checked in the database |
+| DC-06 | Pass | "Harbour Line Logistics (Demo)" created; prefix search "Harb" → 1 row; city edit saved |
+| DC-07 | Pass | Line amounts ₹1,800.00 and ₹900.00; Subtotal ₹2,999.99, Discount −₹299.99, Total ₹2,700.00 (from E-14) |
+| DC-08 | Pass | 1.005 × ₹1.00 → ₹1.01; line removed |
+| DC-09 | Pass | Quantity 0 → "Enter a quantity above 0 and up to 10,00,000."; 1.0005 → "Use at most 3 decimal places."; discount above gross → "The discount cannot be more than the line amount (₹999.99)."; Save blocked (no lines stored, version 1) |
+| DC-10 | Pass | After reload: identical lines and totals |
+| DC-11 | Pass | Preview in the `blob:` iframe; the PDF shows the diagonal "DRAFT — NOT ISSUED" (checked on the rendered page image; text extraction splits the rotated text over two lines), "Not yet issued" and the exact footer "SPECIMEN — demonstration document, not a tax invoice." |
+| DC-12 | Pass | `INV/26-27/00002`, issue date 24 Nov 2026 (India), Finalised, editor replaced by the read-only details |
+| DC-13 | Pass | Double-click on "Finalise invoice" → exactly one number (00001–00003, all distinct; series next value 4); IT-FIN-03 (replay with the same key) green |
+| DC-14 | Pass (with a note) | Downloaded file's SHA-256 equals the details page; printed title "Invoice"; SPECIMEN on every page (1 page); no watermark. Note: the PDF *metadata* title is "Invoice INV/26-27/00002" (open question) |
+| DC-15 | Pass | After changing the business phone and the customer city: byte-identical re-download (same SHA-256); PDF and details still show the issued phone and city |
+| DC-16 | Pass | E-18 PATCH → 409 `document_not_draft`; as `ps5_app` in `psql`, `UPDATE documents SET notes='x'` → "finalised documents cannot be changed" (trigger); `UPDATE`/`DELETE` on `document_snapshots` → permission denied |
+| DC-17 | **Partial** | `docker compose down` (no `-v`) → `up -d` → application restarted: customers, invoices, totals and all five PDF hashes identical before and after (E-22 verifies each against storage). The application ran on the host, not as the Compose `app` service of the current code (BLOCKED) |
+| DC-18 | Pass | Storage stopped → Failed ("storage unavailable") → storage started → Retry → Ready; `INV/26-27/00004` kept; hash matches. Incidentally, `INV/26-27/00003`, finalised just before storage was stopped, also failed with `storage_error` and recovered with one Retry (attempts 2) |
+| DC-19 | Pass | `tests/integration/test_tenancy.py` 6/6; as `auditor@demo.invalid` (own organization and business) org A's invoice URL → "This invoice doesn't exist or you don't have access."; E-17 and E-22 → 404 `not_found` |
+| DC-20 | Pass | No horizontal overflow on 10 pages × 360/768/1280; sticky total bar at 360; drawer below 768; empty, loading (held request) and error (503) states with a working Retry; keyboard-only finalise (`INV/26-27/00005`); no page errors and no CSP messages |
 
 ## Next steps
 
-- **M8 (next):** full automated run; demonstration data set (11 §5) in the `ps5` development database; DC checks that this environment allows; README and setup documentation; final report. in order (10 §3), each committed and pushed when its tests pass.
-- Developer (open question): the landing button label ("ENTER THE SYSTEM" per 08 §10.1 versus "ENTER" in the directive).
-- Developer (open question): confirm the additive `seller`/`buyer` fields on finalised documents (see decisions, 24 Nov 02:50).
+- **Developer, blocking for the demonstration:** choose the presenter machine (`DEMO_CHECKLIST.md` §1). A Docker-capable laptop allows the documented runtime (way B). The Windows laptop would need the untested native path (way C). Then run DC-01 to DC-20 on it, record the results here with the machine name, and freeze (10 M8.4).
 - Developer (outstanding from M0): the Docker verification on a Docker-capable machine (`docker build -t hive-docs:local .`, `docker compose up -d`, `/healthz`, `/readyz`, SPA, storage). Not possible on the current Windows laptop; no further BIOS attempt.
-- Developer (native Windows): run the storage gate and the backend suite natively once the native SeaweedFS identity matches `.env.test` (see Known issues).
+- Developer (native Windows): run the storage gate checks and `uv run pytest` natively against the reported native PostgreSQL and SeaweedFS (see Known issues), then render one invoice natively before relying on way C.
+- Developer (open questions): the landing button label ("ENTER THE SYSTEM" per 08 §10.1 versus "ENTER" in the directive); the additive `seller`/`buyer` fields on finalised documents (decisions, 24 Nov 02:50); the PDF metadata title (decisions, 24 Nov 07:40); the `document_lines_discount_ck` gap (Known issues; a schema change needs approval); the new `enter_demo_data.py` helper and the rehearsal-account recommendation (decisions, 24 Nov 07:45).
+- M0 stays conditionally accepted until the Docker verification passes.

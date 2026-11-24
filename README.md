@@ -5,17 +5,19 @@
 
 HIVE DOCS is a web application that lets small Indian service businesses create, finalise, store and re-download professional business documents. The first document type is the invoice. It is built to grow into a commercial product, not as a disposable prototype.
 
-## Status on 23 November 2026
+## Status on 24 November 2026
 
 | Item | Status |
 | --- | --- |
-| Research and architecture | Complete: Revision 2 baseline plus Revision 2.1 errata |
-| This documentation package | Version 1.2: the approved 1.1 baseline for P0-Lite plus the HTTP 405 and HEAD corrections (see Version history) |
-| Source code | None written yet |
-| Next milestone | Demonstration on Wednesday 25 November 2026, afternoon (exact time to be confirmed) |
+| Documentation package | Version 1.2 (unchanged since the M0 review) |
+| Source code | P0-Lite milestones M0 to M8 implemented on branch `claude/busy-bell-14l7rh`. Milestone history, evidence and open questions are in [`PROGRESS.md`](PROGRESS.md) |
+| Automated checks | Backend 534 tests pass; ruff, ruff format and mypy `--strict` clean; FE-01 to FE-03 pass. Run in the **cloud development container** (Linux), not on the presenter laptop |
+| Demonstration checks | DC-01 to DC-20 rehearsed in the cloud container: 18 pass, 2 partial (DC-01 and DC-17: the application image of the current code could not be built there). **Not yet run on the presenter machine** |
+| Docker | Clean build of the committed Dockerfile and Compose with the current code: **BLOCKED / UNVERIFIED** (see [Known limitations](#known-limitations)). M0 acceptance stays conditional on it |
+| Demonstration | Wednesday 25 November 2026, 1:00 PM IST |
 | Development capacity | One developer, assisted by Claude Code |
 
-## What the 25 November demonstration is planned to cover (P0-Lite)
+## What the demonstration covers (P0-Lite)
 
 ```
 Landing page → ENTER THE SYSTEM → secure demo sign-in → business profile → customer
@@ -26,8 +28,154 @@ Landing page → ENTER THE SYSTEM → secure demo sign-in → business profile �
 
 - Every PDF carries the text **"SPECIMEN — demonstration document, not a tax invoice."**
 - P0-Lite has **no GST calculation** and makes **no compliance claims**.
-- The full Revision 2 P0 (68–89 person-hours) is **not achievable by one developer** before 25 November. P0-Lite is the honest subset, and even its 16.5–22-hour estimate against about 19 focused hours is **aggressive and conditional**: fixed checkpoints decide what is reduced or deferred, and completion of every P0-Lite item is not guaranteed.
-- Calculation correctness, tenant isolation, finalisation integrity and data and PDF persistence are never weakened to meet the date. See `docs/10_IMPLEMENTATION_PLAN.md`.
+- The server recalculates every amount with `Decimal` (`calc-1.0.0`); the browser only displays the server's figures.
+- A finalised invoice gets its number once, in one transaction, and is immutable: its snapshot, its stored PDF and its audit events cannot be changed, by the API or by the application's database role.
+- Each organization sees only its own data. Another organization's records answer 404.
+
+The five-minute script, the prepared data and the presenter checklist are in [`DEMO_CHECKLIST.md`](DEMO_CHECKLIST.md).
+
+## Setting up and running
+
+Three ways to run HIVE DOCS locally. All use the same configuration files and the same PostgreSQL 16 and SeaweedFS services.
+
+| Way | Where it was verified | Use it for |
+| --- | --- | --- |
+| **A. Backing services in Docker, application on the host** (`uvicorn`) | Cloud development container (Linux): the whole M1–M8 test and DC rehearsal ran this way | Development; the presenter laptop if it can run Docker |
+| **B. Everything in Docker Compose** (the documented demonstration runtime, 05 §7, D-1) | **Not verified with the current code**: the committed Dockerfile could not be built in either available environment | The demonstration, once a Docker-capable machine has built the image |
+| **C. Native Windows, no Docker** (temporary arrangement approved on 23 Nov) | **Not verified**: Claude Code has no access to the Windows laptop | Only if the presenter laptop cannot run Docker |
+
+### Prerequisites
+
+| Requirement | Check | Notes |
+| --- | --- | --- |
+| Git | `git --version` | |
+| Docker Engine with Compose v2 | `docker compose version` | Ways A and B |
+| Python 3.12 and uv | `uv --version` | `uv python install 3.12` if needed |
+| Node.js 22.12 or later with npm | `node --version` | The `engines` field of `frontend/package.json` |
+| A Chromium-based browser | — | The demonstration uses Chrome at 100 % zoom |
+
+### Configuration (all ways)
+
+```bash
+cp .env.example .env                 # development database ps5, bucket ps5-documents-dev
+cp .env.test.example .env.test       # test database ps5_test, bucket ps5-documents-test
+cp deploy/seaweedfs/s3.example.json deploy/seaweedfs/s3.json
+```
+
+Fill in every `<placeholder>`. `.env.example` shows how to generate each value. The S3 key pairs in `.env` and `.env.test` must match identities in `deploy/seaweedfs/s3.json`. `.env`, `.env.test` and `s3.json` are git-ignored: **never commit them, and never put the demonstration password in any file.**
+
+### Way A: services in Docker, application on the host (verified)
+
+```bash
+docker compose up -d db storage                  # PostgreSQL 16 and SeaweedFS 4.54 on 127.0.0.1
+cd backend && uv sync && cd ..
+cd frontend && npm ci && npm run build && cd ..  # → frontend/dist
+rm -rf backend/app/static && cp -r frontend/dist backend/app/static   # git-ignored copy served by the backend
+cd backend
+uv run alembic upgrade head                      # as ps5_migrator (MIGRATION_DATABASE_URL)
+uv run python -m app.cli init-dev-storage        # creates the private, versioned bucket; safe to re-run
+uv run uvicorn app.main:app --port 8000          # open http://localhost:8000
+```
+
+On first start, `deploy/postgres/init` creates the databases `ps5` and `ps5_test` and the roles `ps5_migrator` and `ps5_app`. It runs only while the `pgdata` volume is empty. Check health with `curl http://localhost:8000/healthz` and `curl http://localhost:8000/readyz`; `readyz` reports `database`, `storage` and `templates`.
+
+For frontend work, `cd frontend && npm run dev` serves the SPA at `http://localhost:5173` and proxies `/api` to port 8000. Set `APP_ORIGIN=http://localhost:5173` while you do this.
+
+### Way B: everything in Docker Compose (documented, not yet verified)
+
+```bash
+docker compose up -d --build                     # builds hive-docs:local, starts db, storage and app
+docker compose run --rm app alembic upgrade head
+docker compose run --rm app python -m app.cli init-dev-storage
+```
+
+Open `http://localhost:8000`. **Status:** the committed Dockerfile has never been built successfully. In the cloud container, build containers have no DNS or direct internet access. On the developer's Windows laptop, Docker Desktop cannot run (hardware virtualization is disabled). On a Docker-capable machine with normal internet access, run the three commands above and then DC-01 and DC-17 before relying on this way.
+
+### Way C: native Windows without Docker (not verified)
+
+Use this only if the presenter laptop cannot run Docker. It keeps the approved stack: PostgreSQL 16 and SeaweedFS run as local programs instead of containers. No storage or database substitute is allowed.
+
+1. **PostgreSQL 16:** you need the databases `ps5` and `ps5_test` and the roles `ps5_migrator` and `ps5_app`, set up exactly as `deploy/postgres/init/10-ps5-roles-and-databases.sh` describes. The developer reports these already exist natively (PostgreSQL 16.16). **Do not recreate roles, drop databases or re-run the script.** Check the state first with `uv run alembic current` from `backend`.
+2. **SeaweedFS 4.54:** the developer reports a native `weed.exe` on 127.0.0.1:8333 that refuses anonymous requests. Its identities must match the keys in `.env` and `.env.test`. Run it with the flags from `docker-compose.yml`, adapted to the host: `weed server -dir=<data folder> -ip=127.0.0.1 -ip.bind=127.0.0.1 -master.telemetry=false -s3 -s3.port=8333 -s3.config=deploy\seaweedfs\s3.json -s3.autoCreateBucket=false -s3.iam=false`. The bucket stays private, and authentication stays on.
+3. **WeasyPrint 70** needs its native libraries (Pango) on Windows. A smoke test passed natively on 23 Nov; the project templates have not been rendered natively yet.
+4. Run the commands of way A from PowerShell, skipping `docker compose`. To copy the SPA build, use `Remove-Item -Recurse -Force backend\app\static -ErrorAction SilentlyContinue; Copy-Item -Recurse frontend\dist backend\app\static`.
+5. Run the storage gate checks and `uv run pytest` natively first. The SeaweedFS gate tests are part of the suite and need `.env.test`'s keys to match `s3.json`.
+6. Before the demonstration, run DC-01 to DC-20 on this machine and record the results in `PROGRESS.md` as native-Windows evidence.
+
+## Demonstration account and data
+
+There is no public sign-up. The account is created only with the CLI (02 FR-06, 12 §3):
+
+```bash
+cd backend
+uv run python -m app.cli create-demo-account --email owner@demo.invalid --name "Demo Owner" --org "Demo Studio"
+```
+
+The command asks for the password at a hidden prompt (at least 12 characters). It never prints it. You may instead set `DEMO_ACCOUNT_PASSWORD` for that single command. **Never write the password in this repository, in `.env` or in any document.** For the isolation check (DC-19), create a second account the same way: `--email auditor@demo.invalid --name "Isolation Auditor" --org "Isolation Check Org"`.
+
+Enter the demonstration data set (11 §5) either by typing it in the browser (values in `DEMO_CHECKLIST.md`), or with the helper, which uses only the public API and asks for the password:
+
+```bash
+cd backend
+uv run python scripts/enter_demo_data.py --base-url http://localhost:8000
+```
+
+The helper creates the business profile, two customers, finalised invoice `INV/26-27/00001` (₹2,700.00, with its PDF ready) and one draft. It refuses to run when the organization already has invoices. `--base-url` must equal `APP_ORIGIN`. `--email` fills another account created with the CLI, such as the rehearsal account suggested in `DEMO_CHECKLIST.md`.
+
+## Tests
+
+```bash
+cd backend && uv run pytest                      # all suites (db and storage running, .env.test present)
+cd backend && uv run pytest tests/unit           # pure unit tests, no services
+cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy app
+cd frontend && npx tsc --noEmit && npm run lint && npm run build   # FE-01..FE-03
+```
+
+Test runs use `.env.test` only: they recreate the `ps5_test` database schema and use the `ps5-documents-test` bucket. They never touch `ps5` or the development bucket. There is no frontend unit-test runner (05 §2). The browser checks (DC-02 to DC-20, FE-05) were scripted with the container's Playwright outside the repository. The Playwright suite in the repository is stretch item S-03 and was not started.
+
+## Known limitations
+
+- **Docker is unverified.** The committed Dockerfile has not been built successfully, and Compose has not run the current code (way B). The documented demonstration runtime is the Docker stack on the presenter laptop (D-1). The developer's Windows laptop cannot run Docker, and the native fallback (way C) is untested. **A presenter machine must be chosen and DC-01 to DC-20 run on it before the demonstration** (10 M8.3).
+- **P0-Lite scope only** (03 §2). No GST, sign-up, email, payments, receipts, payment requests, salary slips, plans, logo upload or second template. One user, one business and one template (`classic@1`) per organization. Deferred work is listed in 03 §4–§5 and 10 §10.
+- **Specimen documents.** Every PDF says "SPECIMEN — demonstration document, not a tax invoice." The data is synthetic (11 §5). Delete it after Heloavy's evaluation (12 §16).
+- **Single process.** The rate limits (calculate, preview, PDF retry) are kept in memory and reset when the server restarts. Fine for one local server, not for several replicas.
+- **One JavaScript bundle** (about 650 kB before compression; Vite warns above 500 kB). Fine on localhost; code splitting is future work.
+- **Open questions for the developer** (details in `PROGRESS.md`): the landing button label ("ENTER THE SYSTEM" per 08 §10.1, "ENTER" in the directive); the additive `seller`/`buyer` fields on finalised documents; the PDF metadata title "Invoice INV/26-27/00001" (the printed title is "Invoice"); and the `document_lines_discount_ck` gap (a schema change needs approval).
+
+## Deployment
+
+| Target | Status |
+| --- | --- |
+| Local demonstration (05 §13.1, MUST) | Way B on a Docker-capable laptop with a backup machine. Freeze per 10 M8.4: tag `v0.1.0-demo`, `docker save` the image, `pg_dump` plus a copy of the SeaweedFS volume, export sample PDFs. **Not done:** the freeze belongs on the demonstration machine after its DC run |
+| Cloud reference (05 §13.2, stretch S-02) | Not started. It needs paid cloud resources and the developer's approval |
+| Production (05 §13.3, P1-14) | Deferred: backups with tested restore, monitoring, row-level security, MFA, document encryption, DPDP review |
+
+## Repository layout
+
+```
+├── CLAUDE.md, README.md, PROJECT_SUMMARY.md, CONSISTENCY_AUDIT.md
+├── PROGRESS.md            # milestone log, evidence by environment, decisions, open questions
+├── DEMO_CHECKLIST.md      # presenter checklist, prepared data, 5-minute script, fallbacks
+├── docs/                  # the specification package (00–15)
+├── backend/
+│   ├── app/core/          # config, db, clock, errors, HTTP helpers, CSRF-before-routing middleware
+│   ├── app/modules/       # auth, tenancy, audit, businesses, customers, calc, documents,
+│   │                      #   rendering (classic@1 template, worker pool), storage, health
+│   ├── app/cli.py         # create-demo-account, init-dev-storage, template-hash
+│   ├── alembic/versions/  # 0001_identity … 0004_issuance (hand-written SQL)
+│   ├── scripts/           # tooling, excluded from the image (spike A, enter_demo_data)
+│   └── tests/             # unit, db, integration (534 tests)
+├── frontend/src/          # api, app shell, components/ui, features (landing, auth, business,
+│                          #   customers, invoices, templates, dashboard), lib, styles
+├── deploy/                # postgres init script; SeaweedFS identities example
+├── Dockerfile             # one image: built SPA + backend
+├── docker-compose.yml     # db, storage, app; named volumes; ports on 127.0.0.1
+└── .env.example, .env.test.example
+```
+
+## Working with Claude Code
+
+`CLAUDE.md` at the root points every session to `docs/15_CLAUDE_CODE_INSTRUCTIONS.md` (binding rules) and to `PROGRESS.md` (current state). Work proceeds one milestone at a time: Inspect → Plan → Implement → Test → Review → Report.
 
 ## Documentation map
 
@@ -51,36 +199,8 @@ Landing page → ENTER THE SYSTEM → secure demo sign-in → business profile �
 | [`docs/15_CLAUDE_CODE_INSTRUCTIONS.md`](docs/15_CLAUDE_CODE_INSTRUCTIONS.md) | Binding rules and workflow for the development agent | Claude Code, developer |
 | [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) | Two-page summary to share with teammates | Teammates |
 | [`CONSISTENCY_AUDIT.md`](CONSISTENCY_AUDIT.md) | Cross-document consistency audit and the remaining upstream contradictions | Team lead, reviewers |
-
-## How to begin development with Claude Code
-
-1. Put this folder at the root of the project repository. Keep `CLAUDE.md` at the root: Claude Code reads it at the start of every session, and it points to `docs/15_CLAUDE_CODE_INSTRUCTIONS.md`.
-2. Start the first session with:
-   > Read CLAUDE.md and every file in docs/ before writing code. PROGRESS.md does not exist yet: create it in M0 using the format in docs/15 §5. Then implement milestone M0 exactly as specified in docs/10 §3, following the workflow in docs/15 §3 (Inspect → Plan → Implement → Test → Review → Report). Stop when M0's exit criteria are met and report.
-
-   Later sessions use the prompt in docs/10 §9, which also reads PROGRESS.md.
-3. Run one milestone per session. Review the report and the test results before starting the next milestone.
-4. Claude Code keeps `PROGRESS.md` at the repository root up to date (format in `docs/15_CLAUDE_CODE_INSTRUCTIONS.md`).
-
-## Target repository layout
-
-```
-hive-docs/
-├── CLAUDE.md                  # agent entry point (exists now)
-├── README.md                  # this file (exists now)
-├── PROJECT_SUMMARY.md         # team summary (exists now)
-├── PROGRESS.md                # created and maintained by Claude Code from M0
-├── docs/                      # this documentation package (exists now)
-├── backend/                   # FastAPI modular monolith (created in M0)
-├── frontend/                  # React + TypeScript + Vite SPA (created in M0)
-├── deploy/                    # local PostgreSQL init script, SeaweedFS identities example (created in M0)
-├── Dockerfile                 # one image: built SPA + backend (created in M0)
-├── docker-compose.yml         # local PostgreSQL 16 + SeaweedFS (created in M0)
-├── .env.example               # documented variables, no secrets (created in M0)
-└── .env.test.example          # test database and bucket, no secrets (created in M0)
-```
-
-The full folder layout is in `docs/05_TECH_STACK_AND_SETUP.md` §4; module boundaries are in `docs/04_ARCHITECTURE.md` §3 (backend) and §4 (frontend).
+| [`PROGRESS.md`](PROGRESS.md) | Milestone log, verification evidence by environment, decisions and open questions | Developer, reviewers |
+| [`DEMO_CHECKLIST.md`](DEMO_CHECKLIST.md) | Presenter checklist, prepared data and the five-minute script | Presenters |
 
 ## Source-of-truth order
 
