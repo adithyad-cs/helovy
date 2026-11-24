@@ -2,21 +2,21 @@
 
 ## Current status
 
-- Active milestone: **M5 complete; M6 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
-- Last updated: 2026-11-24 02:57 IST
+- Active milestone: **M6 complete; M7 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
+- Last updated: 2026-11-24 07:15 IST
 - M0: acceptance still **conditional** on the outstanding Docker verification (unchanged; see "M0 acceptance status"). It is not marked accepted.
-- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday, M2 at 02:07 IST M3 at 02:25 IST (CP2 target met ahead of Tue 13:00) M4 at 02:40 IST (CP3 target met ahead of Tue 17:30) and M5 at 02:57 IST (CP4 target, finalise → stored PDF → download with IT-FIN and IT-PDF green, met ahead of Tue 21:00). No reduction rule has been applied (applying one is the developer's decision, 10 §9).
+- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday, M2 at 02:07 IST M3 at 02:25 IST (CP2 target met ahead of Tue 13:00) M4 at 02:40 IST (CP3 target met ahead of Tue 17:30) M5 at 02:57 IST (CP4 target met ahead of Tue 21:00) and M6 at 03:02 IST (its commit was delayed to 07:15 IST by a session worker restart; Docker was restarted and the suite re-run green before committing). No reduction rule has been applied (applying one is the developer's decision, 10 §9).
 - Environment for this run: the **cloud development container** (Linux) with the Compose `db` (PostgreSQL 16.16) and `storage` (SeaweedFS 4.54) services. The developer's Windows laptop is not attached to this session (no shared folder), so the native Windows PostgreSQL and SeaweedFS were **not** reached or tested; every result below is cloud-container evidence unless marked otherwise.
 
 ## Autonomous run checkpoint (for restart recovery)
 
 | Item | State |
 | --- | --- |
-| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`, M2 = `b6a97bf`, M3 = `552412a`, M4 = `68e5728`; M5 commit follows it |
+| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`, M2 = `b6a97bf`, M3 = `552412a`, M4 = `68e5728`, M5 = `22f5823`; M6 commit follows it |
 | Databases (cloud container) | `ps5_test`: recreated and migrated to head by every test run. `ps5` (development): not migrated yet (migrated in M8 for the demonstration data) |
 | Services | `docker compose` services `db` and `storage` healthy. The old `app` container still runs the `5402bf9` sandbox image on port 8000; browser checks use a host uvicorn on port 8001 against `ps5_test` |
 | Browser test account | Created in `ps5_test` only (wiped by the next test run); its random password lives in the session scratchpad, never in the repository |
-| Next concrete action | M6: E-16 history list (status filter, prefix search on number and customer, cursor pagination), history page, dashboard recent invoices |
+| Next concrete action | M7: landing page with the three-beat animation and ENTER THE SYSTEM, polish pass, responsive checks, CSP check (V-15) |
 
 ## M0 acceptance status
 
@@ -106,7 +106,7 @@
 | M3 | **Done** (cloud container) | 24 Nov 02:08 | 24 Nov 02:25 | Backend 420/420 (UT-CALC-01..09 incl. 300-example property test, IT-DOC-01..03, DB-02, DB-03, DB-04, E-13, IT-TEN-01 incl. E-14, E-15, E-17..E-19) · FE-01..FE-03 · browser DC-07..DC-10 | `calc-1.0.0`; migration `0003_documents` with both guard triggers; E-13..E-15, E-17..E-19; in-memory limiter (E-14 60/min); editor with live server totals, validation, save, delete, leave guard, quick-create customer |
 | M4 | **Done** (cloud container) | 24 Nov 02:26 | 24 Nov 02:40 | Backend 472/472 (UT-FMT-01, UT-SEC-03, IT-DOC-04, IT-PDF-05, registry, readiness template check) · FE-01..FE-03 · browser: preview in the in-app iframe (full Chromium 153), Templates page | `classic@1` registered (hash `3dba1d0e1295…`); Jinja2 autoescape + StrictUndefined; restricted fetcher; 2 spawn workers with 20 s kill; E-20; `template-hash` CLI; `/readyz` templates |
 | M5 | **Done** (cloud container) | 24 Nov 02:41 | 24 Nov 02:57 | Backend 524/524 (UT-NUM-01/02, UT-SNAP-01..03, IT-FIN-01..07 incl. 10-thread concurrency, IT-PDF-01..04, DB-04..06, DB-08 complete, DB-09, V-14) · FE-01..FE-03 · browser DC-12, DC-13, DC-14, DC-16 (API), DC-18 with SeaweedFS really stopped and restarted | Migration `0004_issuance`; finalisation exactly per 09 §8; post-commit render → private S3 → `stored_files` + `ready`; E-21..E-23; finalise dialog with idempotency key and automatic same-key retries; details view with polling, verified download, retry, integrity |
-| M6 | Not started | | | | |
+| M6 | **Done** (cloud container) | 24 Nov 02:58 | 24 Nov 03:02 (committed 07:15 after a worker restart) | Backend 534/534 (IT-DOC-05, IT-TEN-01/02 incl. E-16) · FE-01..FE-03 · browser: dashboard recents, history filter/search/URL state, DC-15 byte-identical re-download after edits and re-sign-in, 360 px cards | E-16 with status filter, prefix search on number or shown customer name, signed cursors; history page; dashboard with quick actions and five recent invoices |
 | M7 | Not started | | | | |
 | M8 | Not started | | | | |
 
@@ -125,9 +125,9 @@
 | L-09 | **Done** | IT-DOC-04, rate limit, HEAD, 503 on timeout; browser: Preview saves first, then shows the watermarked PDF in the dialog (full Chromium), "Open preview" below 768 px | Nothing stored; no audit event |
 | L-10 | **Done** | IT-FIN-01..07; DB-03..DB-05; browser DC-12 (INV/26-27/00001, India date), DC-13 (double-click → one number) | Lock order idempotency → document → number series; `lock_timeout` 5 s |
 | L-11 | **Done** | IT-PDF-01..04, DB-06; browser DC-14 (downloaded file's SHA-256 equals the details page), DC-18 (storage stopped → Failed → started → Retry → Ready, number kept) | Object key `orgs/{org}/documents/{doc}/final-{artifact}.pdf`; anonymous GET refused (403) |
-| L-12 | Not started | — | M6 |
-| L-13 | Not started | — | M6 |
-| L-14 | In progress | IT-TEN-01..03 for E-07..E-15, E-17..E-23 (`tests/integration/test_tenancy.py`) | E-16 joins the suite in M6 |
+| L-12 | **Done** | IT-DOC-05; browser: history list, Finalised filter, number and customer prefix search, details view read-only, DC-15 (same SHA-256 after business and customer edits and after signing in again) | |
+| L-13 | **Done** | Browser: set-up card without a business; New invoice, New customer and the five most recent invoices (E-16 `limit=5`) with a business; empty state | No charts, revenue figures or analytics |
+| L-14 | **Done** | IT-TEN-01 (every org-scoped endpoint E-07..E-23: 404 with the same shape as a missing ID), IT-TEN-02 (customer and document lists), IT-TEN-03 (composite FKs) | DC-19 runs `tests/integration/test_tenancy.py` |
 | L-15 | In progress | FE-01..FE-03 | Design tokens, fonts, breakpoints and the reduced-motion base rule are in place; pages arrive M1–M7 |
 | L-16 | In progress | IT-HLT-01 (partial); Compose stack healthy in the cloud container with the sandbox-derived image of `5402bf9` code | Compose with named volumes and 127.0.0.1 ports, E-01/E-02, no committed secrets. The clean build of the committed Dockerfile and Compose with the current code are outstanding (BLOCKED). DC-17 (persistence across `down`/`up`) is verified in M8 |
 
@@ -210,6 +210,8 @@
 | 24 Nov 02:50 | E-22 reads the current object (not the recorded version ID), so an overwritten object is detected (IT-PDF-02); a missing object is also `integrity_check_failed`; unreachable storage is 503. E-23's 1-per-10-s limit is checked after the 404 and 409 checks | 09 §11; 07 E-22, E-23 | Claude Code |
 | 24 Nov 02:55 | **Defect found and fixed:** the S3 client from M0 allowed a single attempt, so a pooled keep-alive connection that SeaweedFS had closed made a PDF upload fail (`ConnectionClosedError`). The client now uses botocore's standard retry mode with 3 attempts; every call is idempotent | 04 §12 | Claude Code |
 | 24 Nov 02:55 | **Defect found and fixed:** after "Reload" in the 412 dialog the editor kept the stale values; it now resets to the refetched version whenever a newer ETag arrives and the form is not being edited | 08 §9 | Claude Code |
+| 24 Nov 03:00 | E-16 search matches the number or the customer name shown (the snapshot's `buyer_name` for finalised documents, the current customer name for drafts) with escaped LIKE prefixes; `status` other than `draft`/`finalized` → 422 `invalid_choice` at `/status`; an empty `q` means no search | 07 E-16; 09 §4.3 | Claude Code |
+| 24 Nov 07:10 | Session worker restart (about 4 h): M6 work was intact in the working tree; the Docker daemon was restarted (containers and volumes intact) and the full suite re-run before the M6 commit | — | — |
 
 ## Dependencies added (with approval)
 
@@ -296,8 +298,8 @@ All results below were obtained in the cloud development container (Linux) unles
 
 ## Next steps
 
-- **M6 (next):** E-16 history list, history page, dashboard recent invoices (tests IT-DOC-05, IT-TEN-02).
-- Then M7 and M8 in order (10 §3), each committed and pushed when its tests pass.
+- **M7 (next):** landing page (08 §10) with the three-beat animation, reduced motion and ENTER THE SYSTEM; polish pass; responsive checks at 360, 768 and 1280 px; CSP check (V-15).
+- Then M8 in order (10 §3), each committed and pushed when its tests pass.
 - Developer (open question): confirm the additive `seller`/`buyer` fields on finalised documents (see decisions, 24 Nov 02:50).
 - Developer (outstanding from M0): the Docker verification on a Docker-capable machine (`docker build -t hive-docs:local .`, `docker compose up -d`, `/healthz`, `/readyz`, SPA, storage). Not possible on the current Windows laptop; no further BIOS attempt.
 - Developer (native Windows): run the storage gate and the backend suite natively once the native SeaweedFS identity matches `.env.test` (see Known issues).

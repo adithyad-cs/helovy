@@ -65,6 +65,7 @@ def _requests(ids: dict[str, str]) -> list[tuple[str, str, dict[str, object]]]:
             {"json": {"city": "X"}, "headers": {"If-Match": '"1"'}},
         ),
         ("POST", f"/api/v1/businesses/{business}/calculate", {"json": {"lines": []}}),
+        ("GET", f"/api/v1/businesses/{business}/documents", {}),
         ("POST", f"/api/v1/businesses/{business}/documents", {"json": {"customer_id": customer}}),
         ("GET", f"/api/v1/documents/{document}", {}),
         ("PATCH", f"/api/v1/documents/{document}", {"json": {"notes": "x"}, "headers": {"If-Match": '"1"'}}),

@@ -4,17 +4,18 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.clock import Clock, get_clock
 from app.core.db import get_db
-from app.core.http import etag, require_if_match
+from app.core.errors import AppError
+from app.core.http import decode_cursor, etag, require_if_match
 from app.core.routing import HeadAwareRoute
 from app.core.schemas import require_json_body
 from app.modules.businesses.service import get_business
-from app.modules.documents import artifacts, drafts, finalize, preview
+from app.modules.documents import artifacts, drafts, finalize, history, preview
 from app.modules.documents.schemas import CalculateRequest, DocumentCreate, DocumentPatch
 from app.modules.tenancy.dependencies import Tenant, current_tenant, parse_uuid
 
@@ -53,6 +54,50 @@ def calculate(
     request.app.state.rate_limits["calculate"].check(str(tenant.session_id), clock.now())
     result = drafts.calculate([line.calc_input() for line in body.lines])
     return JSONResponse(drafts.calculation_json(result))
+
+
+SEARCH_MAX = 50
+
+
+def _field_problem(pointer: str, code: str, message: str) -> AppError:
+    return AppError(
+        "validation_failed",
+        detail="1 field needs attention.",
+        errors=[{"pointer": pointer, "code": code, "message": message}],
+    )
+
+
+@business_router.get("/documents")
+def list_documents(
+    business_id: str,
+    request: Request,
+    tenant: Annotated[Tenant, Depends(current_tenant)],
+    db: Annotated[Session, Depends(get_db)],
+    status: Annotated[str | None, Query()] = None,
+    q: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+    cursor: Annotated[str | None, Query()] = None,
+) -> JSONResponse:
+    """E-16: history list and dashboard recents (docs/07 E-16)."""
+    target = parse_uuid(business_id)
+    if status is not None and status not in ("draft", "finalized"):
+        raise _field_problem("/status", "invalid_choice", "Use draft or finalized.")
+    prefix = (q or "").strip() or None
+    if prefix is not None and len(prefix) > SEARCH_MAX:
+        raise _field_problem("/q", "too_long", f"Use at most {SEARCH_MAX} characters.")
+    key = request.app.state.settings.csrf_key
+    after = decode_cursor(key, history.cursor_scope(target), cursor) if cursor else None
+    page = history.list_documents(
+        db,
+        tenant.org_id,
+        target,
+        csrf_key=key,
+        status=status,
+        prefix=prefix,
+        limit=limit,
+        after=after,
+    )
+    return JSONResponse(page)
 
 
 @business_router.post("/documents")

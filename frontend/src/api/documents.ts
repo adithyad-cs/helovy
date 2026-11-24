@@ -1,5 +1,5 @@
 /** Documents: E-13 to E-23 (docs/07 §3.3, §4). Money and quantities are strings throughout. */
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 
 import type { Versioned } from './businesses'
 import { apiBlob, apiRequest } from './http'
@@ -209,4 +209,44 @@ export async function retryPdf(id: string): Promise<{ pdf: PdfInfo }> {
 export async function downloadPdf(id: string): Promise<Blob> {
   const { blob } = await apiBlob(`/api/v1/documents/${id}/pdf`)
   return blob
+}
+
+export interface DocumentListItem {
+  id: string
+  status: 'draft' | 'finalized'
+  number: string | null
+  customer_name: string
+  issue_date: string | null
+  grand_total: string | null
+  pdf_status: PdfStatus | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DocumentPage {
+  items: DocumentListItem[]
+  next_cursor: string | null
+}
+
+export async function listDocuments(
+  businessId: string,
+  params: { status?: 'draft' | 'finalized'; q?: string; cursor?: string | null; limit?: number },
+): Promise<DocumentPage> {
+  const search = new URLSearchParams()
+  if (params.status) search.set('status', params.status)
+  if (params.q) search.set('q', params.q)
+  if (params.cursor) search.set('cursor', params.cursor)
+  search.set('limit', String(params.limit ?? 20))
+  const { data } = await apiRequest<DocumentPage>(`/api/v1/businesses/${businessId}/documents?${search.toString()}`)
+  return data
+}
+
+export function useDocumentList(businessId: string, params: { status?: 'draft' | 'finalized'; q?: string; limit?: number }) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.documents(businessId, params),
+    queryFn: ({ pageParam }) => listDocuments(businessId, { ...params, cursor: pageParam }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.next_cursor,
+    placeholderData: keepPreviousData,
+  })
 }
