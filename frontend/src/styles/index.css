@@ -89,6 +89,7 @@
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
@@ -149,4 +150,68 @@
 @keyframes value-flash {
   from { background-color: var(--tint-accent); }
   to { background-color: transparent; }
+}
+
+/* The Ledger Assembles (docs/08 §10.2). Beats: sheet 0–0.6 s, lines 0.6–2.0 s, totals 2.0–3.0 s,
+   stamp 3.0–4.2 s, then a static end frame. Each element waits in its start state until the
+   panel is in view (data-playing). Under reduced motion the global rule above shortens every
+   animation to an instant, so the end frame shows at once; fill-mode `both` holds it. */
+@layer components {
+  .ledger .ledger-sheet,
+  .ledger .ledger-line,
+  .ledger .ledger-totals,
+  .ledger .ledger-sweep,
+  .ledger .ledger-stamp,
+  .ledger .ledger-caption {
+    animation-fill-mode: both;
+    animation-play-state: paused;
+  }
+  .ledger[data-playing='true'] .ledger-sheet,
+  .ledger[data-playing='true'] .ledger-line,
+  .ledger[data-playing='true'] .ledger-totals,
+  .ledger[data-playing='true'] .ledger-sweep,
+  .ledger[data-playing='true'] .ledger-stamp,
+  .ledger[data-playing='true'] .ledger-caption {
+    animation-play-state: running;
+  }
+  .ledger .ledger-sheet { animation: ledger-sheet 600ms cubic-bezier(0.2, 0.7, 0.2, 1) 0ms both; }
+  .ledger .ledger-line-1 { animation: ledger-line 520ms cubic-bezier(0.2, 0.7, 0.2, 1) 600ms both; }
+  .ledger .ledger-line-2 { animation: ledger-line 520ms cubic-bezier(0.2, 0.7, 0.2, 1) 1300ms both; }
+  .ledger .ledger-totals { animation: ledger-fade 450ms ease-out 2000ms both; }
+  .ledger .ledger-sweep { animation: ledger-sweep 550ms cubic-bezier(0.4, 0, 0.2, 1) 2400ms both; }
+  .ledger .ledger-stamp { animation: ledger-stamp 450ms cubic-bezier(0.3, 1.4, 0.5, 1) 3000ms both; }
+  .ledger .ledger-caption { animation: ledger-fade 500ms ease-out 3500ms both; }
+}
+
+/* Reduced motion: no animation at all; the elements' own styles are the final frame. */
+@media (prefers-reduced-motion: reduce) {
+  .ledger .ledger-sheet,
+  .ledger .ledger-line,
+  .ledger .ledger-totals,
+  .ledger .ledger-sweep,
+  .ledger .ledger-stamp,
+  .ledger .ledger-caption {
+    animation: none !important;
+  }
+}
+
+@keyframes ledger-sheet {
+  from { opacity: 0; scale: 0.98; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes ledger-line {
+  from { opacity: 0; translate: -12px 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes ledger-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ledger-sweep {
+  from { scale: 0 1; opacity: 0.2; }
+  to { scale: 1 1; opacity: 1; }
+}
+@keyframes ledger-stamp {
+  from { opacity: 0; scale: 1.15; }
+  to { opacity: 1; scale: 1; }
 }

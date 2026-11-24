@@ -128,7 +128,7 @@ export function FinaliseButton({
               Confirming…
             </p>
           ) : null}
-          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="mt-6 flex flex-col-reverse gap-2 md:flex-row md:justify-end">
             <AlertDialog.Cancel asChild>
               <Button variant="secondary" disabled={busy}>
                 Cancel

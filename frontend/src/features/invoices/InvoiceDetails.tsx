@@ -55,6 +55,13 @@ export function InvoiceDetails({ current, polling }: { current: Versioned<Invoic
   const [copied, setCopied] = useState(false)
   const previousStatus = useRef(pdf?.status)
   const [announcement, setAnnouncement] = useState('')
+  const headingRef = useRef<HTMLHeadingElement>(null)
+
+  // After finalising, the dialog and its trigger are gone: keep keyboard focus on the page
+  // by moving it to the invoice number (docs/08 §8).
+  useEffect(() => {
+    if (window.document.activeElement === window.document.body) headingRef.current?.focus()
+  }, [])
 
   useEffect(() => {
     if (previousStatus.current !== pdf?.status) {
@@ -121,7 +128,7 @@ export function InvoiceDetails({ current, polling }: { current: Versioned<Invoic
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 tabIndex={-1} className="font-serif text-[30px] leading-9 font-semibold text-ink tabular-nums outline-none md:text-[34px] md:leading-10">
+            <h1 ref={headingRef} tabIndex={-1} className="font-serif text-[30px] leading-9 font-semibold text-ink tabular-nums outline-none md:text-[34px] md:leading-10">
               {document.number}
             </h1>
             <StatusPill tone="finalised">Finalised</StatusPill>

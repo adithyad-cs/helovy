@@ -69,7 +69,7 @@ export function QuickCustomerDialog({
               <TextField label="Email" type="email" error={errors.email?.message} {...form.register('email')} />
               <TextField label="City" error={errors.city?.message} {...form.register('city')} />
             </fieldset>
-            <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div className="mt-2 flex flex-col-reverse gap-2 md:flex-row md:justify-end">
               <Dialog.Close asChild>
                 <Button variant="secondary" disabled={create.isPending}>
                   Cancel

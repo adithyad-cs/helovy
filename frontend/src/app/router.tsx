@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 
 import { LoginPage } from '../features/auth/LoginPage'
+import { LandingPage } from '../features/landing/LandingPage'
 import { BusinessProfilePage } from '../features/business/BusinessProfilePage'
 import { CustomerFormPage } from '../features/customers/CustomerFormPage'
 import { CustomerListPage } from '../features/customers/CustomerListPage'
@@ -14,11 +15,10 @@ import { AppShell } from './AppShell'
 import { NotFoundPage } from './NotFoundPage'
 import { RequireAuth } from './RequireAuth'
 import { RequireBusiness } from './RequireBusiness'
-import { SkeletonPage } from './SkeletonPage'
 
-// Routes of docs/08 §12.1. Sections not built yet render an honest placeholder.
+// Routes of docs/08 §12.1.
 const router = createBrowserRouter([
-  { path: '/', element: <SkeletonPage /> },
+  { path: '/', element: <LandingPage /> },
   { path: '/login', element: <LoginPage /> },
   {
     path: '/app',

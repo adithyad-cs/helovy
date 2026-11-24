@@ -2,21 +2,21 @@
 
 ## Current status
 
-- Active milestone: **M6 complete; M7 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
-- Last updated: 2026-11-24 07:15 IST
+- Active milestone: **M7 complete; M8 next** (autonomous run M1–M8 authorised by the developer's master directive of 24 Nov; see "Autonomous run checkpoint").
+- Last updated: 2026-11-24 07:25 IST
 - M0: acceptance still **conditional** on the outstanding Docker verification (unchanged; see "M0 acceptance status"). It is not marked accepted.
-- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday, M2 at 02:07 IST M3 at 02:25 IST (CP2 target met ahead of Tue 13:00) M4 at 02:40 IST (CP3 target met ahead of Tue 17:30) M5 at 02:57 IST (CP4 target met ahead of Tue 21:00) and M6 at 03:02 IST (its commit was delayed to 07:15 IST by a session worker restart; Docker was restarted and the suite re-run green before committing). No reduction rule has been applied (applying one is the developer's decision, 10 §9).
+- Checkpoints: CP1 (Mon 22:30 IST) was missed; M1 finished at 01:52 IST Tuesday, M2 at 02:07 IST M3 at 02:25 IST (CP2 target met ahead of Tue 13:00) M4 at 02:40 IST (CP3 target met ahead of Tue 17:30) M5 at 02:57 IST (CP4 target met ahead of Tue 21:00) and M6 at 03:02 IST (its commit was delayed to 07:15 IST by a session worker restart; Docker was restarted and the suite re-run green before committing); M7 at 07:25 IST. No reduction rule has been applied (applying one is the developer's decision, 10 §9).
 - Environment for this run: the **cloud development container** (Linux) with the Compose `db` (PostgreSQL 16.16) and `storage` (SeaweedFS 4.54) services. The developer's Windows laptop is not attached to this session (no shared folder), so the native Windows PostgreSQL and SeaweedFS were **not** reached or tested; every result below is cloud-container evidence unless marked otherwise.
 
 ## Autonomous run checkpoint (for restart recovery)
 
 | Item | State |
 | --- | --- |
-| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`, M2 = `b6a97bf`, M3 = `552412a`, M4 = `68e5728`, M5 = `22f5823`; M6 commit follows it |
+| Branch / last commit | `claude/busy-bell-14l7rh`; M1 = `0d934ae`, M2 = `b6a97bf`, M3 = `552412a`, M4 = `68e5728`, M5 = `22f5823`, M6 = `2ef44f6`; M7 commit follows it |
 | Databases (cloud container) | `ps5_test`: recreated and migrated to head by every test run. `ps5` (development): not migrated yet (migrated in M8 for the demonstration data) |
 | Services | `docker compose` services `db` and `storage` healthy. The old `app` container still runs the `5402bf9` sandbox image on port 8000; browser checks use a host uvicorn on port 8001 against `ps5_test` |
 | Browser test account | Created in `ps5_test` only (wiped by the next test run); its random password lives in the session scratchpad, never in the repository |
-| Next concrete action | M7: landing page with the three-beat animation and ENTER THE SYSTEM, polish pass, responsive checks, CSP check (V-15) |
+| Next concrete action | M8: full automated run, `ps5` development database migrated with the demonstration data set (11 §5), DC checks possible in this environment, README and setup documentation, final report |
 
 ## M0 acceptance status
 
@@ -107,14 +107,14 @@
 | M4 | **Done** (cloud container) | 24 Nov 02:26 | 24 Nov 02:40 | Backend 472/472 (UT-FMT-01, UT-SEC-03, IT-DOC-04, IT-PDF-05, registry, readiness template check) · FE-01..FE-03 · browser: preview in the in-app iframe (full Chromium 153), Templates page | `classic@1` registered (hash `3dba1d0e1295…`); Jinja2 autoescape + StrictUndefined; restricted fetcher; 2 spawn workers with 20 s kill; E-20; `template-hash` CLI; `/readyz` templates |
 | M5 | **Done** (cloud container) | 24 Nov 02:41 | 24 Nov 02:57 | Backend 524/524 (UT-NUM-01/02, UT-SNAP-01..03, IT-FIN-01..07 incl. 10-thread concurrency, IT-PDF-01..04, DB-04..06, DB-08 complete, DB-09, V-14) · FE-01..FE-03 · browser DC-12, DC-13, DC-14, DC-16 (API), DC-18 with SeaweedFS really stopped and restarted | Migration `0004_issuance`; finalisation exactly per 09 §8; post-commit render → private S3 → `stored_files` + `ready`; E-21..E-23; finalise dialog with idempotency key and automatic same-key retries; details view with polling, verified download, retry, integrity |
 | M6 | **Done** (cloud container) | 24 Nov 02:58 | 24 Nov 03:02 (committed 07:15 after a worker restart) | Backend 534/534 (IT-DOC-05, IT-TEN-01/02 incl. E-16) · FE-01..FE-03 · browser: dashboard recents, history filter/search/URL state, DC-15 byte-identical re-download after edits and re-sign-in, 360 px cards | E-16 with status filter, prefix search on number or shown customer name, signed cursors; history page; dashboard with quick actions and five recent invoices |
-| M7 | Not started | | | | |
+| M7 | **Done** (cloud container) | 24 Nov 07:16 | 24 Nov 07:25 | Backend 534/534 · FE-01..FE-03 (no inline scripts) · browser: animation beats, reduced-motion end frame, ENTER THE SYSTEM (anonymous → /login, signed in → /app, keyboard Enter), V-15 whole-app CSP walk in full Chromium, FE-05 matrix 11 pages × 360/768/1280 with no horizontal overflow, keyboard-only finalise | Landing page (08 §10.1) with "The Ledger Assembles" (CSS keyframes, played once in view, < 5 s), favicon, polish fixes below |
 | M8 | Not started | | | | |
 
 ## Features
 
 | ID | Status (Not started / In progress / Done / Deferred) | Evidence (tests, DC) | Notes |
 | --- | --- | --- | --- |
-| L-01 | Not started | — | M0 has an honest placeholder page at `/` (replaced in M7) |
+| L-01 | **Done** | Browser: headline, sub-headline, three value points, workflow strip, footer note; animation beats measured (lines → totals → FINALISED · INV/26-27/00001, finished about 4.2 s after it starts); static end frame under reduced motion; ENTER THE SYSTEM routing | Label kept as documented ("ENTER THE SYSTEM"); see decisions |
 | L-02 | **Done** | IT-AUTH-01..06, UT-SEC-01/02, CLI tests; browser: guard redirect, wrong-password message, sign-in, cookie flags, sign-out, Back → /login | No sign-up, no default credentials, no auto-login |
 | L-03 | **Done** | Browser: nav with `aria-current`, focus to `h1` on navigation, 360 px drawer, unknown `/app/...` → 404 page, `next` return after sign-in | Business, Customers, Invoices and Templates show an honest "not available in this build yet" page until M2–M6 replace them |
 | L-04 | **Done** | IT-BIZ-01..03; browser: create with invalid PIN → field error and focus, create, edit phone with toast, leave guard | DC-15 (issued invoices unchanged) is checked once finalisation exists (M5) |
@@ -128,7 +128,7 @@
 | L-12 | **Done** | IT-DOC-05; browser: history list, Finalised filter, number and customer prefix search, details view read-only, DC-15 (same SHA-256 after business and customer edits and after signing in again) | |
 | L-13 | **Done** | Browser: set-up card without a business; New invoice, New customer and the five most recent invoices (E-16 `limit=5`) with a business; empty state | No charts, revenue figures or analytics |
 | L-14 | **Done** | IT-TEN-01 (every org-scoped endpoint E-07..E-23: 404 with the same shape as a missing ID), IT-TEN-02 (customer and document lists), IT-TEN-03 (composite FKs) | DC-19 runs `tests/integration/test_tenancy.py` |
-| L-15 | In progress | FE-01..FE-03 | Design tokens, fonts, breakpoints and the reduced-motion base rule are in place; pages arrive M1–M7 |
+| L-15 | **Done** (automated and scripted browser checks; contrast and screen-reader spot checks are manual, FE-04) | FE-05 matrix; keyboard-only finalise with visible focus; focus to `h1` on navigation and after finalising; loading, empty, error and success states on every page; polite announcements (Saved, Totals updated, PDF ready); reduced motion | The 08 §4 token contrast values are the documented ones; a contrast-checker pass was not run |
 | L-16 | In progress | IT-HLT-01 (partial); Compose stack healthy in the cloud container with the sandbox-derived image of `5402bf9` code | Compose with named volumes and 127.0.0.1 ports, E-01/E-02, no committed secrets. The clean build of the committed Dockerfile and Compose with the current code are outstanding (BLOCKED). DC-17 (persistence across `down`/`up`) is verified in M8 |
 
 ## Reduction rules applied
@@ -212,6 +212,8 @@
 | 24 Nov 02:55 | **Defect found and fixed:** after "Reload" in the 412 dialog the editor kept the stale values; it now resets to the refetched version whenever a newer ETag arrives and the form is not being edited | 08 §9 | Claude Code |
 | 24 Nov 03:00 | E-16 search matches the number or the customer name shown (the snapshot's `buyer_name` for finalised documents, the current customer name for drafts) with escaped LIKE prefixes; `status` other than `draft`/`finalized` → 422 `invalid_choice` at `/status`; an empty `q` means no search | 07 E-16; 09 §4.3 | Claude Code |
 | 24 Nov 07:10 | Session worker restart (about 4 h): M6 work was intact in the working tree; the Docker daemon was restarted (containers and volumes intact) and the full suite re-run before the M6 commit | — | — |
+| 24 Nov 07:18 | **Open question:** the master directive names the landing button "ENTER"; 08 §10.1, 03 L-01 and DC-02 specify "ENTER THE SYSTEM". The documented label is used (it starts with ENTER and behaves as the directive asks: anonymous → /login, signed in → /app, keyboard operable, never `#`) | 08 §10.1; 03 L-01 | Claude Code (developer to confirm) |
+| 24 Nov 07:20 | **Defects found and fixed in the polish pass:** (1) `sm:` utilities were silently ignored because the theme defines only the 08 §6 breakpoints (`md`, `lg`); they are now `md:` (dialog button rows, landing header badge). (2) Under reduced motion the animation's delays still applied; the global rule now zeroes `animation-delay` and the landing animation is switched off entirely, so the end frame shows at once. (3) After finalising, keyboard focus fell to the page body; it now moves to the invoice number | 08 §6, §7, §8 | Claude Code |
 
 ## Dependencies added (with approval)
 
@@ -263,7 +265,7 @@ All results below were obtained in the cloud development container (Linux) unles
 | V-19 | **Pass (gate 3)** | With the app's credentials and `create_s3_client`: PUT/GET of 256 KiB byte-identical, SHA-256 equal, HeadBucket OK, for both identities. Each identity is refused (403) on the other's bucket. Automated: `test_v19_*`, `test_credentials_are_limited_to_their_own_bucket` |
 | V-12 | Pass (Chromium, cloud container) | Headless Chromium kept the `Secure` `ps5_session` cookie on `http://localhost:8001` (HttpOnly, Secure, SameSite=Lax, Path=/, host-only). To re-check in the presenter's Chrome in M8 (DC-04) |
 | V-13 | Pass | argon2-cffi 25.1.0 defaults: Argon2id, m = 65,536 KiB (64 MiB), t = 3, p = 4, above the OWASP minimum (19 MiB, t = 2, p = 1); asserted by UT-SEC-01 |
-| V-15 | Partial pass (preview) | Full Chromium 153 (new headless) shows the preview PDF in the in-app `blob:` iframe with no CSP console messages. The rest of V-15 (Radix dialogs, whole built SPA) is checked in M7 |
+| V-15 | Pass (full Chromium 153, cloud container) | Whole built SPA walked with no CSP console messages: landing, login, Radix Select, Popover, DropdownMenu, AlertDialog, Dialog drawer, the preview PDF in the `blob:` iframe, finalise, details, history, templates, 404. To repeat in the presenter's Chrome (DC-20) |
 | V-14 | Pass | PostgreSQL 16.16 accepts the generated columns `buyer_name` (`payload #>> '{buyer,display_name}'`) and `grand_total` (`::numeric(16,2)`); verified by migration and `test_v14_generated_columns_and_ut_snap_02_round_trip` |
 | V-10, V-11, V-17 | Not run | Not in scope (S-02, before P1) |
 | Clean image build and Compose verification (M0 exit criteria 1 and 8) | **BLOCKED / UNVERIFIED** in both environments | **Windows laptop:** Docker Desktop cannot run (hardware virtualization disabled; BIOS access blocked by an unknown administrator password; no further BIOS attempt), so the build was not attempted there. **Cloud container:** `docker build -t hive-docs:local .` on the unmodified, committed Dockerfile (unchanged since `5402bf9`, also at `0ea973c`) failed in 9 s with exit code 1: in the build's `RUN` containers `apt-get update` reports `Could not resolve 'deb.debian.org'` (no DNS or direct egress for containers in the cloud container's sandbox; `npm ci` was cancelled with it). Diagnostic with CLI flags only (`--network host` plus proxy build arguments, separate tag; no Dockerfile change, no TLS bypass): apt's plain-HTTP Debian sources get `405 Method Not Allowed` from the sandbox proxy, which tunnels HTTPS only, and HTTPS downloads would require trusting the proxy's interception CA inside the build. Both causes are environmental. `hive-docs:local` was not changed (still image `7d9bafcb…`, built earlier through the sandbox-derived Dockerfile from commit `5402bf9` code). **Not run, because the clean image does not exist:** Compose with that image, `/healthz`, `/readyz`, SPA load, storage |
@@ -298,8 +300,8 @@ All results below were obtained in the cloud development container (Linux) unles
 
 ## Next steps
 
-- **M7 (next):** landing page (08 §10) with the three-beat animation, reduced motion and ENTER THE SYSTEM; polish pass; responsive checks at 360, 768 and 1280 px; CSP check (V-15).
-- Then M8 in order (10 §3), each committed and pushed when its tests pass.
+- **M8 (next):** full automated run; demonstration data set (11 §5) in the `ps5` development database; DC checks that this environment allows; README and setup documentation; final report. in order (10 §3), each committed and pushed when its tests pass.
+- Developer (open question): the landing button label ("ENTER THE SYSTEM" per 08 §10.1 versus "ENTER" in the directive).
 - Developer (open question): confirm the additive `seller`/`buyer` fields on finalised documents (see decisions, 24 Nov 02:50).
 - Developer (outstanding from M0): the Docker verification on a Docker-capable machine (`docker build -t hive-docs:local .`, `docker compose up -d`, `/healthz`, `/readyz`, SPA, storage). Not possible on the current Windows laptop; no further BIOS attempt.
 - Developer (native Windows): run the storage gate and the backend suite natively once the native SeaweedFS identity matches `.env.test` (see Known issues).

@@ -38,7 +38,7 @@ export function ConfirmDialog({
           <AlertDialog.Description asChild>
             <div className="mt-3 text-sm text-ink">{children}</div>
           </AlertDialog.Description>
-          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="mt-6 flex flex-col-reverse gap-2 md:flex-row md:justify-end">
             <AlertDialog.Cancel asChild>
               <Button variant="secondary" disabled={busy}>
                 {cancelLabel}
