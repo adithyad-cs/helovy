@@ -176,8 +176,10 @@ def test_invalid_values_fail_fast(
 def test_wrong_database_url_scheme_does_not_leak_password(
     env: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # postgresql:// and postgres:// are accepted since the Render preparation (they are
+    # normalised to psycopg 3); another driver is still a wrong scheme.
     password = secrets.token_urlsafe(16)
-    monkeypatch.setenv("DATABASE_URL", f"postgresql://ps5_app:{password}@db/ps5")
+    monkeypatch.setenv("DATABASE_URL", f"postgresql+psycopg2://ps5_app:{password}@db/ps5")
     with pytest.raises(ConfigError, match="DATABASE_URL") as caught:
         _load()
     assert password not in str(caught.value)

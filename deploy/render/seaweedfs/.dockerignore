@@ -1,0 +1,3 @@
+# Render copies secret files (such as s3.json) into the root of the build context.
+# The storage image needs nothing from the context, so exclude everything.
+*

@@ -7,6 +7,10 @@ errors never include the offending values, so secrets cannot leak into logs.
 For tools run on the host, a repository-root ``.env`` file is read as a fallback;
 real environment variables always take precedence. The Docker image contains no
 ``.env`` file (docs/05 §7.1), so containers use their environment only.
+
+Database URLs may use the ``postgresql+psycopg://`` form or the plain ``postgresql://`` and
+``postgres://`` forms that managed platforms (Render) hand out; the plain forms are rewritten
+to the psycopg 3 driver (``normalise_database_url``). Any other driver is refused.
 """
 
 from __future__ import annotations
@@ -25,12 +29,45 @@ CSRF_SECRET_MIN_BYTES = 32
 AppEnv = Literal["development", "demo", "production"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
+PSYCOPG_SCHEME = "postgresql+psycopg"
+# Schemes rewritten to the psycopg 3 driver; matched case-insensitively (RFC 3986 §3.1).
+_PLAIN_POSTGRES_SCHEMES = frozenset({"postgres", "postgresql"})
+_URL_SCHEME = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*)://")
+DATABASE_URL_RULE = "must be a PostgreSQL URL: postgresql://, postgres:// or postgresql+psycopg://"
+
 _BUCKET_NAME = re.compile(r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$")
 _HEX = re.compile(r"^(?:[0-9a-fA-F]{2})+$")
 
 
 class ConfigError(RuntimeError):
     """Raised when the environment does not hold a valid configuration."""
+
+
+def normalise_database_url(url: str) -> str:
+    """Return ``url`` with the psycopg 3 driver, or raise ValueError (never echoing the URL).
+
+    Render and other platforms give ``postgresql://user:password@host:port/db``; SQLAlchemy
+    would read the bare scheme as the psycopg2 driver, which is not installed. Only the scheme
+    is rewritten: user, password (with its percent-encoding), host, port, database and query
+    parameters such as ``sslmode=require`` are kept byte for byte. Other drivers
+    (``postgresql+psycopg2``, ``postgresql+asyncpg``, ...) and other databases are refused.
+    """
+    match = _URL_SCHEME.match(url.strip())
+    if match is None:
+        raise ValueError(DATABASE_URL_RULE)
+    scheme = match.group(1).lower()
+    rest = url.strip()[match.end() :]
+    if scheme in _PLAIN_POSTGRES_SCHEMES or scheme == PSYCOPG_SCHEME:
+        if not rest or rest.startswith(("/", "?")):
+            raise ValueError("must name the database host")
+        return f"{PSYCOPG_SCHEME}://{rest}"
+    if scheme.startswith("postgresql+") or scheme.startswith("postgres+"):
+        raise ValueError("must use the psycopg (version 3) driver: postgresql+psycopg://")
+    raise ValueError(DATABASE_URL_RULE)
+
+
+def _normalised_secret_url(value: SecretStr) -> SecretStr:
+    return SecretStr(normalise_database_url(value.get_secret_value()))
 
 
 class Settings(BaseSettings):
@@ -84,9 +121,7 @@ class Settings(BaseSettings):
     @field_validator("database_url", "migration_database_url")
     @classmethod
     def _postgres_url(cls, value: SecretStr | None) -> SecretStr | None:
-        if value is not None and not value.get_secret_value().startswith("postgresql+psycopg://"):
-            raise ValueError("must start with postgresql+psycopg://")
-        return value
+        return None if value is None else _normalised_secret_url(value)
 
     @field_validator("s3_endpoint_url")
     @classmethod
@@ -142,19 +177,19 @@ class MigrationSettings(BaseSettings):
     @field_validator("migration_database_url")
     @classmethod
     def _postgres_url(cls, value: SecretStr) -> SecretStr:
-        if not value.get_secret_value().startswith("postgresql+psycopg://"):
-            raise ValueError("must start with postgresql+psycopg://")
-        return value
+        return _normalised_secret_url(value)
 
 
 def load_migration_url() -> str:
-    """MIGRATION_DATABASE_URL, or ConfigError naming the variable (never its value)."""
+    """MIGRATION_DATABASE_URL (normalised to psycopg 3), or ConfigError naming the variable.
+
+    The error never contains the value.
+    """
     try:
         return MigrationSettings().migration_database_url.get_secret_value()
     except ValidationError:
         raise ConfigError(
-            "Invalid configuration: MIGRATION_DATABASE_URL is required and must start with "
-            "postgresql+psycopg://"
+            f"Invalid configuration: MIGRATION_DATABASE_URL is required and {DATABASE_URL_RULE}"
         ) from None
 
 

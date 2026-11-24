@@ -31,7 +31,7 @@ from sqlalchemy import Engine, create_engine, text
 
 from alembic import command
 from app.core.clock import FrozenClock
-from app.core.config import REPO_ROOT, Settings, load_settings
+from app.core.config import REPO_ROOT, Settings, load_settings, normalise_database_url
 from app.main import create_app
 from app.modules.storage.client import create_s3_client, init_bucket
 
@@ -78,7 +78,7 @@ _load_env_test()
 
 
 def migration_url() -> str:
-    url = os.environ["MIGRATION_DATABASE_URL"]
+    url = normalise_database_url(os.environ["MIGRATION_DATABASE_URL"])
     if urlsplit(url).path != TEST_DATABASE:  # defence in depth: never another database
         raise RuntimeError("migration URL does not point at ps5_test")
     return url

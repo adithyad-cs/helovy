@@ -108,3 +108,57 @@ def init_bucket(client: Any, bucket: str, region: str) -> BucketInitResult:
         logger.info("bucket versioning not enabled: %s", _error_code(exc))
         return BucketInitResult(bucket, created=True, versioning="not supported")
     return BucketInitResult(bucket, created=True, versioning=_versioning_status(client, bucket))
+
+
+# --- Staging and production check of the application's own credentials --------------------
+
+# Harmless administrative probes: if the application's credentials were allowed to run them,
+# they would only (re)enable versioning and keep the bucket private. Success means the
+# credentials can administer the bucket, which staging and production forbid.
+_ADMIN_PROBES = ("PutBucketVersioning", "PutBucketAcl")
+
+
+@dataclass(frozen=True)
+class StorageCheck:
+    """What ``check-storage`` found with the application's own credentials."""
+
+    bucket: str
+    ready: bool
+    versioning: str  # as in BucketInitResult, or "unknown" when the bucket is unreachable
+    probes: dict[str, str]  # probe -> "refused (<code>)" or "ALLOWED"
+
+    @property
+    def can_administer(self) -> bool:
+        return any(result == "ALLOWED" for result in self.probes.values())
+
+    @property
+    def ok(self) -> bool:
+        return self.ready and self.versioning == "Enabled" and not self.can_administer
+
+
+def check_app_storage(client: Any, bucket: str) -> StorageCheck:
+    """Check reachability, versioning and the absence of admin rights for ``client``.
+
+    The probes never weaken anything even when they succeed: they set versioning to Enabled
+    and the canned ACL to private. They run only when the bucket is reachable.
+    """
+    if not bucket_is_ready(client, bucket):
+        return StorageCheck(bucket, ready=False, versioning="unknown", probes={})
+    versioning = _versioning_status(client, bucket)
+    calls = {
+        "PutBucketVersioning": lambda: client.put_bucket_versioning(
+            Bucket=bucket, VersioningConfiguration={"Status": "Enabled"}
+        ),
+        "PutBucketAcl": lambda: client.put_bucket_acl(Bucket=bucket, ACL="private"),
+    }
+    probes: dict[str, str] = {}
+    for name in _ADMIN_PROBES:
+        try:
+            calls[name]()
+        except ClientError as exc:
+            probes[name] = f"refused ({_error_code(exc) or 'error'})"
+        except BotoCoreError as exc:
+            probes[name] = f"refused ({type(exc).__name__})"
+        else:
+            probes[name] = "ALLOWED"
+    return StorageCheck(bucket, ready=True, versioning=versioning, probes=probes)

@@ -3,6 +3,8 @@
 # HIVE DOCS (PS5): one image holding the built SPA and the FastAPI backend (docs/05 §7.1).
 # Build:  docker build -t hive-docs:local .
 # The image contains no .env file, no test data and no secrets: .dockerignore is an allowlist.
+# Migrations ship in the image (alembic.ini + alembic/), so a platform pre-deploy step can run
+# `alembic upgrade head` with MIGRATION_DATABASE_URL (docs/DEPLOYMENT_RENDER.md).
 
 # ---- Stage 1: frontend build ------------------------------------------------------------
 # Node.js 22 LTS (satisfies Vite 8 engines ^20.19.0 || >=22.12.0; V-02), pinned by digest.
@@ -44,6 +46,8 @@ RUN pip install --no-cache-dir uv==0.11.32 \
     && pip uninstall -y uv
 
 COPY backend/app ./app
+COPY backend/alembic.ini ./alembic.ini
+COPY backend/alembic ./alembic
 COPY --from=frontend-build /build/frontend/dist ./app/static
 
 # Run as an unprivileged user that cannot modify the application files.
@@ -55,6 +59,8 @@ ENV XDG_CACHE_HOME=/tmp/.cache
 USER 10001
 
 EXPOSE 8000
+# Listens on $PORT when the platform sets it (Render: 10000 by default), else 8000 (Compose).
 # One worker process: the in-memory rate limiter and the render pool assume a single
-# process (docs/05 §1). X-Forwarded-* headers are not trusted (docs/12 §2.2).
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--no-proxy-headers"]
+# process (docs/05 §1). X-Forwarded-* headers are not trusted (docs/12 §2.2). `exec` makes
+# uvicorn the main process, so it receives SIGTERM directly and shuts down gracefully.
+CMD ["/bin/sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port \"${PORT:-8000}\" --workers 1 --no-proxy-headers"]

@@ -4,6 +4,8 @@
 !.env.example
 !.env.test.example
 deploy/seaweedfs/s3.json
+# Real SeaweedFS identity files for any environment (staging keys live only in Render).
+**/s3.json
 
 # --- Python ---
 __pycache__/

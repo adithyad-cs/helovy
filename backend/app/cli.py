@@ -1,7 +1,7 @@
 """Administrative command line (docs/05 §8): ``python -m app.cli <command>``.
 
-Implemented: ``init-dev-storage`` (M0), ``create-demo-account`` (M1) and ``template-hash``
-(M4).
+Implemented: ``init-dev-storage`` (M0), ``create-demo-account`` (M1), ``template-hash``
+(M4) and ``check-storage`` (Render staging preparation, docs/DEPLOYMENT_RENDER.md).
 
 ``create-demo-account`` connects with the restricted app role (``DATABASE_URL``; docs/06 §11).
 The password comes from ``DEMO_ACCOUNT_PASSWORD`` (set only for that one command) or from a
@@ -27,7 +27,12 @@ from app.modules.auth.service import (
     AccountExistsError,
     create_account,
 )
-from app.modules.storage.client import StorageError, create_s3_client, init_bucket
+from app.modules.storage.client import (
+    StorageError,
+    check_app_storage,
+    create_s3_client,
+    init_bucket,
+)
 
 EXIT_OK = 0
 EXIT_FAILED = 1
@@ -136,6 +141,45 @@ def _template_hash(template_id: str) -> int:
     return EXIT_OK
 
 
+def _check_storage() -> int:
+    """Check the application's own S3 access: bucket reachable, versioning on, no admin rights.
+
+    Meant for staging and production, where the application identity must hold only Read,
+    Write and List on its bucket (the local development identities also hold Admin, so this
+    command reports them as able to administer the bucket). Never prints credentials.
+    """
+    try:
+        settings = load_settings()
+    except ConfigError as exc:
+        print(f"check-storage: {exc}", file=sys.stderr)
+        return EXIT_FAILED
+    result = check_app_storage(create_s3_client(settings), settings.s3_bucket)
+    reachable = "yes" if result.ready else "NO"
+    print(f"check-storage: bucket {result.bucket} reachable with the app credentials: {reachable}")
+    if not result.ready:
+        print(
+            "check-storage: FAILED: create the bucket and check S3_ENDPOINT_URL, S3_BUCKET and "
+            "the app identity's keys",
+            file=sys.stderr,
+        )
+        return EXIT_FAILED
+    print(f"check-storage: versioning: {result.versioning}")
+    for probe, outcome in result.probes.items():
+        print(f"check-storage: {probe} with the app credentials: {outcome}")
+    if result.can_administer:
+        print(
+            "check-storage: FAILED: the app credentials can administer the bucket; give the "
+            "app identity only Read, Write and List on it",
+            file=sys.stderr,
+        )
+        return EXIT_FAILED
+    if result.versioning != "Enabled":
+        print("check-storage: FAILED: enable versioning on the bucket", file=sys.stderr)
+        return EXIT_FAILED
+    print("check-storage: OK")
+    return EXIT_OK
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli", description="HIVE DOCS admin CLI")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -154,6 +198,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "template-hash", help="print the SHA-256 over a template's files (docs/09 §11)"
     )
     hashing.add_argument("template_id")
+    commands.add_parser(
+        "check-storage",
+        help="check the app S3 credentials: versioned bucket reachable, no admin rights",
+    )
     args = parser.parse_args(argv)
     if args.command == "template-hash":
         return _template_hash(args.template_id)
@@ -161,6 +209,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _init_dev_storage()
     if args.command == "create-demo-account":
         return _create_demo_account(args.email, args.name, args.org)
+    if args.command == "check-storage":
+        return _check_storage()
     parser.error(f"unknown command {args.command!r}")  # exits with status 2
 
 

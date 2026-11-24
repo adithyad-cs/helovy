@@ -11,9 +11,10 @@ HIVE DOCS is a web application that lets small Indian service businesses create,
 | --- | --- |
 | Documentation package | Version 1.2 (unchanged since the M0 review) |
 | Source code | P0-Lite milestones M0 to M8 implemented on branch `claude/busy-bell-14l7rh`. Milestone history, evidence and open questions are in [`PROGRESS.md`](PROGRESS.md) |
-| Automated checks | Backend 534 tests pass; ruff, ruff format and mypy `--strict` clean; FE-01 to FE-03 pass. Run in the **cloud development container** (Linux), not on the presenter laptop |
+| Automated checks | Backend 616 tests pass; ruff, ruff format and mypy `--strict` clean; FE-01 to FE-03 pass. Run in the **cloud development container** (Linux), not on the presenter laptop |
 | Demonstration checks | DC-01 to DC-20 rehearsed in the cloud container: 18 pass, 2 partial (DC-01 and DC-17: the application image of the current code could not be built there). **Not yet run on the presenter machine** |
 | Docker | Clean build of the committed Dockerfile and Compose with the current code: **BLOCKED / UNVERIFIED** (see [Known limitations](#known-limitations)). M0 acceptance stays conditional on it |
+| Render staging | **Prepared, not deployed:** `render.yaml` and [`docs/DEPLOYMENT_RENDER.md`](docs/DEPLOYMENT_RENDER.md). Creating it needs paid Render resources and the developer's go-ahead |
 | Demonstration | Wednesday 25 November 2026, 1:00 PM IST |
 | Development capacity | One developer, assisted by Claude Code |
 
@@ -85,7 +86,7 @@ For frontend work, `cd frontend && npm run dev` serves the SPA at `http://localh
 
 ```bash
 docker compose up -d --build                     # builds hive-docs:local, starts db, storage and app
-docker compose run --rm app alembic upgrade head
+docker compose run --rm app alembic upgrade head # the image ships alembic.ini and the migrations
 docker compose run --rm app python -m app.cli init-dev-storage
 ```
 
@@ -147,7 +148,8 @@ Test runs use `.env.test` only: they recreate the `ps5_test` database schema and
 | Target | Status |
 | --- | --- |
 | Local demonstration (05 §13.1, MUST) | Way B on a Docker-capable laptop with a backup machine. Freeze per 10 M8.4: tag `v0.1.0-demo`, `docker save` the image, `pg_dump` plus a copy of the SeaweedFS volume, export sample PDFs. **Not done:** the freeze belongs on the demonstration machine after its DC run |
-| Cloud reference (05 §13.2, stretch S-02) | Not started. It needs paid cloud resources and the developer's approval |
+| Render staging (developer request, 24 Nov) | Prepared, not deployed: `render.yaml` (Singapore; Postgres 16 `ps5`; private SeaweedFS 4.54 with a disk; web service with `/readyz` health check and pre-deploy migrations) and [`docs/DEPLOYMENT_RENDER.md`](docs/DEPLOYMENT_RENDER.md). Paid resources; nothing created |
+| Cloud reference (05 §13.2, stretch S-02, DigitalOcean) | Not started |
 | Production (05 §13.3, P1-14) | Deferred: backups with tested restore, monitoring, row-level security, MFA, document encryption, DPDP review |
 
 ## Repository layout
@@ -156,18 +158,20 @@ Test runs use `.env.test` only: they recreate the `ps5_test` database schema and
 ├── CLAUDE.md, README.md, PROJECT_SUMMARY.md, CONSISTENCY_AUDIT.md
 ├── PROGRESS.md            # milestone log, evidence by environment, decisions, open questions
 ├── DEMO_CHECKLIST.md      # presenter checklist, prepared data, 5-minute script, fallbacks
+├── render.yaml            # Render staging Blueprint (docs/DEPLOYMENT_RENDER.md); no secrets
 ├── docs/                  # the specification package (00–15)
 ├── backend/
 │   ├── app/core/          # config, db, clock, errors, HTTP helpers, CSRF-before-routing middleware
 │   ├── app/modules/       # auth, tenancy, audit, businesses, customers, calc, documents,
 │   │                      #   rendering (classic@1 template, worker pool), storage, health
-│   ├── app/cli.py         # create-demo-account, init-dev-storage, template-hash
-│   ├── alembic/versions/  # 0001_identity … 0004_issuance (hand-written SQL)
+│   ├── app/cli.py         # create-demo-account, init-dev-storage, template-hash, check-storage
+│   ├── alembic/versions/  # 0001_identity … 0005_app_role_privileges (hand-written SQL)
 │   ├── scripts/           # tooling, excluded from the image (spike A, enter_demo_data)
-│   └── tests/             # unit, db, integration (534 tests)
+│   └── tests/             # unit, db, integration (616 tests)
 ├── frontend/src/          # api, app shell, components/ui, features (landing, auth, business,
 │                          #   customers, invoices, templates, dashboard), lib, styles
-├── deploy/                # postgres init script; SeaweedFS identities example
+├── deploy/                # postgres init script; SeaweedFS identities example;
+│                          #   render/seaweedfs: the Render storage image and identities example
 ├── Dockerfile             # one image: built SPA + backend
 ├── docker-compose.yml     # db, storage, app; named volumes; ports on 127.0.0.1
 └── .env.example, .env.test.example
@@ -197,6 +201,7 @@ Test runs use `.env.test` only: they recreate the `ps5_test` database schema and
 | [`docs/13_TEAM_HANDOFF.md`](docs/13_TEAM_HANDOFF.md) | Plain-language explanation for HIVE Hub teammates | Teammates, presenters |
 | [`docs/14_OPEN_QUESTIONS_AND_ASSUMPTIONS.md`](docs/14_OPEN_QUESTIONS_AND_ASSUMPTIONS.md) | Questions for Heloavy, assumptions, upstream contradictions | Team lead, Heloavy |
 | [`docs/15_CLAUDE_CODE_INSTRUCTIONS.md`](docs/15_CLAUDE_CODE_INSTRUCTIONS.md) | Binding rules and workflow for the development agent | Claude Code, developer |
+| [`docs/DEPLOYMENT_RENDER.md`](docs/DEPLOYMENT_RENDER.md) | Render staging: services, credentials, storage provisioning, migrations, backups, rollback, verification | Developer, operators |
 | [`PROJECT_SUMMARY.md`](PROJECT_SUMMARY.md) | Two-page summary to share with teammates | Teammates |
 | [`CONSISTENCY_AUDIT.md`](CONSISTENCY_AUDIT.md) | Cross-document consistency audit and the remaining upstream contradictions | Team lead, reviewers |
 | [`PROGRESS.md`](PROGRESS.md) | Milestone log, verification evidence by environment, decisions and open questions | Developer, reviewers |
